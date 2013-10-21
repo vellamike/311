@@ -3,7 +3,7 @@ import math
 
 
 test_prediction = [1,2,3,4,5]
-test_actual = [1,2,2,2,5]
+test_actual = [1,3,4,5,5]
 
 def error_function(predicted,actual):
     """
@@ -27,6 +27,6 @@ def error_function(predicted,actual):
 
     return f
 
-print error_function(test_prediction,test_prediction)
+print error_function(test_prediction,test_actual)
 
 

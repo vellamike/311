@@ -29,6 +29,7 @@ num_views = d.num_views
 num_comments = d.num_comments
 latitude = d.latitude
 longitude = d.longitude
+log_num_views = map(math.log,num_views + 1)
 
 num_points = len(d.num_views)
 
@@ -38,7 +39,6 @@ def plot_multiple():
     plot(latitude,num_views,'latitude','number of views')
     plot(longitude,num_views,'longitude','number of views')
     
-    log_num_views = map(math.log,num_views + 1)
     plot(chars_in_summary,log_num_views,'characters in summary','log + 1 of number of views')
     plot(chars_in_description,log_num_views,'characters in description','log + 1 of number of views')
     plot(latitude,log_num_views,'latitude','log + 1 of number of views')

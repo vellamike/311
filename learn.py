@@ -7,9 +7,13 @@ import pdb
 from numpy import genfromtxt
 
 def load_data(path="data/train_four.csv"):
+    """
+    Output of this function appears to be a structured array,
+    which does cause some headaches/benefits, depending on how you look at it:
+    http://docs.scipy.org/doc/numpy/user/basics.rec.html
+    """
     
     data = np.recfromcsv(path, delimiter = ";", invalid_raise = False)
-
     return data
 
 def train(data):

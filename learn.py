@@ -6,15 +6,11 @@ from sklearn.metrics import mean_squared_error
 import pdb
 from numpy import genfromtxt
 
-def load_data():
+def load_data(path="data/train_four.csv"):
     
-    data = np.recfromcsv("data/train_four.csv", delimiter = ",", invalid_raise = False)
+    data = np.recfromcsv(path, delimiter = ";", invalid_raise = False)
 
     return data
-
-
-
-
 
 def train(data):
     params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 1,

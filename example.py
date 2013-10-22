@@ -30,7 +30,9 @@ num_comments = d.num_comments
 latitude = d.latitude
 longitude = d.longitude
 log_num_views = map(math.log,num_views + 1)
-
+log_mean_views = np.mean(log_num_views)
+mean_views = np.exp(log_mean_views) - 1
+print(mean_views)
 num_points = len(d.num_views)
 
 def plot_multiple():
@@ -100,9 +102,9 @@ def uniform_value_parameter_sweep(actual,title=None):
     plt.title = title
     plt.show()
 
-uniform_value_parameter_sweep(d.num_views, title = 'param sweep for num_views')
-uniform_value_parameter_sweep(d.num_comments, title = 'param sweep for num_comments')
-uniform_value_parameter_sweep(d.num_votes, title = 'param sweep for num_votes')
+#uniform_value_parameter_sweep(d.num_views, title = 'param sweep for num_views')
+#uniform_value_parameter_sweep(d.num_comments, title = 'param sweep for num_comments')
+#uniform_value_parameter_sweep(d.num_votes, title = 'param sweep for num_votes')
 
 mean_num_views = uniform_array(1.8,num_points)
 mean_num_votes =  uniform_array(1.3,num_points) 
@@ -112,7 +114,24 @@ mean_num_views_error = cost_function.error_function(mean_num_views,d.num_views)
 mean_num_votes_error = cost_function.error_function(mean_num_votes,d.num_votes)
 mean_num_comments_error = cost_function.error_function(mean_num_comments,d.num_comments)
 
+zeros = np.zeros(num_points)
+zeros_num_views_error = cost_function.error_function(zeros,d.num_views)
+
+zeros_num_comments_error = cost_function.error_function(zeros,d.num_comments)
+
+zeros_num_votes_error = cost_function.error_function(zeros,d.num_votes)
+
+print("Errors")
 print mean_num_views_error
 print mean_num_votes_error
 print mean_num_comments_error
 print (mean_num_views_error + mean_num_votes_error + mean_num_comments_error) / 3.0
+print zeros_num_views_error
+print zeros_num_votes_error
+print zeros_num_comments_error
+
+print (zeros_num_comments_error + zeros_num_votes_error +
+       zeros_num_views_error)\
+/ 3.0
+
+plot_multiple()

@@ -4,7 +4,6 @@ from within interactive interpreter
 
 field names are:
 ('id', 'latitude', 'longitude', 'summary', 'description', 'num_votes', 'num_comments', 'num_views', 'source', 'created_time', 'tag_type')
-
 """
 
 from matplotlib import pyplot as plt
@@ -121,17 +120,19 @@ zeros_num_comments_error = cost_function.error_function(zeros,d.num_comments)
 
 zeros_num_votes_error = cost_function.error_function(zeros,d.num_votes)
 
-print("Errors")
+print("Mean num views error:")
 print mean_num_views_error
+print("Mean num votes error:")
 print mean_num_votes_error
+print("Mean num comments error:")
 print mean_num_comments_error
+print("zeros errors:")
 print (mean_num_views_error + mean_num_votes_error + mean_num_comments_error) / 3.0
 print zeros_num_views_error
 print zeros_num_votes_error
 print zeros_num_comments_error
-
 print (zeros_num_comments_error + zeros_num_votes_error +
        zeros_num_views_error)\
 / 3.0
 
-plot_multiple()
+#plot_multiple()

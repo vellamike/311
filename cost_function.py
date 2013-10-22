@@ -1,10 +1,6 @@
 import numpy
 import math
 
-
-test_prediction = [1,2,3,4,5]
-test_actual = [1,3,4,5,5]
-
 def error_function(predicted,actual):
     """
     Error function as described here:
@@ -26,7 +22,3 @@ def error_function(predicted,actual):
     f = math.sqrt(g/n)
 
     return f
-
-print error_function(test_prediction,test_actual)
-
-

@@ -8,7 +8,7 @@ from numpy import genfromtxt
 
 def load_data():
     
-    data = np.recfromcsv("data/train.csv", delimiter = ",", invalid_raise = False)
+    data = np.recfromcsv("data/train_four.csv", delimiter = ",", invalid_raise = False)
 
     return data
 

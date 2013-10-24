@@ -84,7 +84,7 @@ def stats(x,y):
 
     return means_dict,stdev_dict
 
-#plot_multiple()
+plot_multiple()
 
 def uniform_array(value,length):
     return np.ones(length)*value

@@ -43,3 +43,6 @@ def predict(clf):
     mse = mean_squared_error(y_test, clf.predict(X_test))
     print("MSE: %.4f" % mse)
     pass
+
+def set_log_mean(predictions):
+    pass

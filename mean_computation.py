@@ -13,7 +13,7 @@ MS = np.array([4.03809025,
       1.4300572225,
       0.3742625329])
 
-z = np.array([np.mean(r[0:3]**2) for r in B])
+z = np.array([np.sum(r**2) for r in B])
 y = 3*A/2 - 3*MS/2 + z/2
 
 x = solve(B, y)

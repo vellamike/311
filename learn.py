@@ -45,4 +45,28 @@ def predict(clf):
     pass
 
 def set_log_mean(predictions):
-    pass
+    log_mean_comments = 0.02665824
+    log_mean_views = 0.41264568
+    log_mean_votes = 0.80850881
+    means = (log_mean_comments,
+             log_mean_views,
+             log_mean_votes)
+    # Assume predictions is a 3 tuple of arrays: first comment predictions,
+    # then views, then votes.
+    scaled_predictions = []
+    for (m, p) in zip(means, predictions):
+        scale_factor_lb = 0
+        scale_factor_ub = 2
+        while scale_factor_ub - scale_factor_lb > 10**(-7):
+            guess = (scale_factor_ub + scale_factor_lb) /2.0
+            mean = np.mean(np.log(1+ guess * p))
+            if mean > m:
+                scale_factor_ub = guess
+            else:
+                scale_factor_lb = guess
+        scaled_predictions.append(guess * p)
+    return scaled_predictions
+
+
+
+

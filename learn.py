@@ -3,6 +3,7 @@ import io
 from sklearn import svm
 from sklearn import ensemble
 from sklearn.metrics import mean_squared_error
+import sklearn.preprocessing
 import pdb
 from numpy import genfromtxt
 import math
@@ -20,15 +21,31 @@ def load_data(path="data/train_four.csv"):
 def add_features(d):
     d.chars_in_description = map(len,d.description)
     d.chars_in_summary = map(len,d.summary)
-    d.log_num_views = map(math.log,d.num_views + 1)
+    d.nlog_num_comments = map(math.log,d.num_comments + 1)
+    d.nlog_num_views = map(math.log,d.num_views + 1)
+    d.nlog_num_votes = map(math.log,d.num_votes + 1)
 
 def train(d):
     add_features(d)
     params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 1,
                         'learning_rate': 0.01, 'loss': 'ls'}
+    n = len(d.tag_type)
+    d.int_source = feature_to_int(d.source)
+    d.int_tag_type = feature_to_int(d.tag_type)
+    
     enc = sklearn.preprocessing.OneHotEncoder()
-
-
+    int_features = np.zeros(n,2)
+    int_features[:,0] = d.int_source
+    int_features[:,1] = d.int_tag_type
+    enc.fit(d.int_features)
+    pdb.set_trace()
+    #enc.fit(d.source)
+    # OHE -- one hot encoded 
+    # initial run. Train on: chars_in_description, chars_in_summary,
+    # nlog_num_comments, nlog_num_views, nlog_num_votes, city (OHE), source
+    # (OHE), tag_type (OHE)
+    # thought about using created_time, but since the test set is from a later
+    # period, it will probably not be useful. 
 
     clf = ensemble.GradientBoostingRegressor(**params)
     features = np.column_stack((d['latitude'],
@@ -38,22 +55,39 @@ def train(d):
     clf.fit(features, d.log_num_views)
     return clf
 
+def make_category_dict(feature):
+    category_dict = dict()
+    count = 0
+    for string in feature:
+        if not (string in category_dict):
+            category_dict[string] = count
+            count += 1
+    return category_dict
+
+def feature_to_int(feature):
+    category_dict = make_category_dict(feature)
+    int_feature = np.array([category_dict[s] for s in feature])
+    return int_feature
+
 
 def predict(clf):
-    mse = mean_squared_error(y_test, clf.predict(X_test))
+    predictions = set_log_mean(clf.predict(X_test))
+    mse = mean_squared_error(y_test, predictions)
     print("MSE: %.4f" % mse)
     pass
 
 def set_log_mean(predictions):
+    ''' Assume predictions is a 3 tuple of arrays: first comment predictions,
+    then views, then votes.'''
     log_mean_comments = 0.02665824
     log_mean_views = 0.41264568
     log_mean_votes = 0.80850881
     means = (log_mean_comments,
              log_mean_views,
              log_mean_votes)
-    # Assume predictions is a 3 tuple of arrays: first comment predictions,
-    # then views, then votes.
+   
     scaled_predictions = []
+    guesses = []
     for (m, p) in zip(means, predictions):
         scale_factor_lb = 0
         scale_factor_ub = 2
@@ -65,6 +99,9 @@ def set_log_mean(predictions):
             else:
                 scale_factor_lb = guess
         scaled_predictions.append(guess * p)
+        guesses.append(guess)
+    print('''Fudge factors: {{comments:{0}}}, {{views: {1}}}, {{votes: \
+{2}}}.'''.format(guesses[0],guesses[1],guesses[2]))
     return scaled_predictions
 
 

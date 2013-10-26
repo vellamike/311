@@ -6,7 +6,11 @@ import learn
 import numpy as np
 import io
 
-data = pandas.io.parsers.read_csv('/home/ben/Desktop/niche_means_fudged.csv')
+source_data_path = './data/niche_means.csv'
+save_to_data_path = './data/ben_corrected_validation.csv'
+
+data = pandas.io.parsers.read_csv(source_data_path)
+
 print data.head()
 num_votes = data['num_votes'].values
 num_views = data['num_views'].values
@@ -34,6 +38,6 @@ comments = np.concatenate([num_comments, scaled_prediction[0]])
 views = np.concatenate([num_views, scaled_prediction[1]])
 votes = np.concatenate([num_votes, scaled_prediction[2]])
 
-with open("submission_corrected.csv",'w') as handle:
+with open(save_to_data_path,'w') as handle:
     for (id, comment, view, vote) in zip(ids, comments, views, votes):
         handle.write("{0},{1},{2},{3}\n".format(id, view, vote, comment))

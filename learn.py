@@ -7,6 +7,7 @@ import sklearn.preprocessing
 import pdb
 from numpy import genfromtxt
 import math
+import time
 
 def load_data(path="data/train_four.csv"):
     """
@@ -18,12 +19,23 @@ def load_data(path="data/train_four.csv"):
     data = np.recfromcsv(path, delimiter = ";", invalid_raise = False)
     return data
 
+def make_vw_training_set(d, features):
+    with open("data/vowpal_training.vw","w") as handle:
+        for (id, tog_views, f) in zip(d.id,
+                                      d.tog_num_views, 
+                                      features):
+            s = "{0} '{1} |".format(tog_views, id) 
+            for (i, x) in enumerate(np.array(f)[0]):
+                #pdb.set_trace()
+                s += "{0}:{1} ".format(i, x)
+            handle.write(s + '\n')
+
 def add_features(d):
     d.chars_in_description = map(len,d.description)
     d.chars_in_summary = map(len,d.summary)
-    d.nlog_num_comments = map(math.log,d.num_comments + 1)
-    d.nlog_num_views = map(math.log,d.num_views + 1)
-    d.nlog_num_votes = map(math.log,d.num_votes + 1)
+    d.tog_num_comments = map(math.log,d.num_comments + 1)
+    d.tog_num_views = map(math.log,d.num_views + 1)
+    d.tog_num_votes = map(math.log,d.num_votes + 1)
 
 def train(d):
     add_features(d)
@@ -34,25 +46,30 @@ def train(d):
     d.int_tag_type = feature_to_int(d.tag_type)
     
     enc = sklearn.preprocessing.OneHotEncoder()
-    int_features = np.zeros(n,2)
-    int_features[:,0] = d.int_source
-    int_features[:,1] = d.int_tag_type
-    enc.fit(d.int_features)
-    pdb.set_trace()
-    #enc.fit(d.source)
+    int_features = np.zeros((n,2))
+    int_features[:,0] = d.int_source # 9 values
+    int_features[:,1] = d.int_tag_type # 43 values
+    enc.fit(int_features)
+    encoded_features = enc.transform(int_features).todense()
     # OHE -- one hot encoded 
     # initial run. Train on: chars_in_description, chars_in_summary,
-    # nlog_num_comments, nlog_num_views, nlog_num_votes, city (OHE), source
+    # city (OHE), source
     # (OHE), tag_type (OHE)
     # thought about using created_time, but since the test set is from a later
     # period, it will probably not be useful. 
 
     clf = ensemble.GradientBoostingRegressor(**params)
-    features = np.column_stack((d['latitude'],
-                               d['longitude'],
-                               d.chars_in_description,
-                               d.chars_in_summary))
-    clf.fit(features, d.log_num_views)
+    #pdb.set_trace()
+    k = -1
+    features = np.column_stack((d.chars_in_description[:k],
+                                d.chars_in_summary[:k],
+                                encoded_features[:k, :]
+                               ))
+    make_vw_training_set(d, features)
+    return
+    start = time.time()
+    clf.fit(features, d.tog_num_views[:k])
+    print(time.time() - start)
     return clf
 
 def make_category_dict(feature):
@@ -104,6 +121,8 @@ def set_log_mean(predictions):
 {2}}}.'''.format(guesses[0],guesses[1],guesses[2]))
     return scaled_predictions
 
-
+if __name__ == "__main__":
+    d = load_data()
+    train(d)
 
 

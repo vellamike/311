@@ -160,7 +160,7 @@ def set_tog_means(predictions):
              log_mean_votes)
 
     scaled_predictions = []
-    guesses = []
+    guesses = [] #TODO guesses does nothing? - MV
     for (m, p) in zip(means, predictions):
         scaled_predictions.append(set_tog_mean(p, m))
     return scaled_predictions

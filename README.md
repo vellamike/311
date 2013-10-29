@@ -6,7 +6,7 @@ Miscellaneous
 * Write readme
 * Plot proportion of data in each small niche for the traning and test data sets.
 * Add assert statement to stop us predicting that anything has less than one vote.
-* Clean the data to remove duplicate entries. (As suggested by winner of hackathon.)
+* Look for duplicates in test data. How common are they? (As suggested by winner of hackathon.)
 
 Mean probing
 * Figure out why the means have gone down

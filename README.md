@@ -5,6 +5,7 @@ Miscellaneous
 * Tidy code
 * Write readme
 * Plot proportion of data in each small niche for the traning and test data sets.
+* Add assert statement to stop us predicting that anything has less than one vote.
 
 Mean probing
 * Figure out why the means have gone down

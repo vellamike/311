@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn import linear_model
 from sklearn.linear_model import SGDRegressor 
 import sklearn.preprocessing
+
 import pdb
 from numpy import genfromtxt
 import math
@@ -19,21 +20,6 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def load_data(path="data/train.csv"):
     return pandas.read_csv(path)
-
-def make_features(d, source_dic = None, tag_dic = None, enc = None):
-    int_features = np.zeros((len(d.id), 4))
-    int_features[:,0] = feature_to_int(d.source.values, category_dict = source_dic) 
-    # 9 values in training set
-    int_features[:,1] = feature_to_int(d.tag_type.values, category_dict = tag_dic)
-    int_features[:,2] = city_feature(d)
-    int_features[:,3] = map(int, d.description > 0)
-    # 43 values in training set
-    if enc is None:
-        enc = sklearn.preprocessing.OneHotEncoder()
-        encoded_features =  enc.fit_transform(int_features).todense()
-    else:
-        encoded_features = enc.transform(int_features).todense()
-    return (encoded_features, enc)
 
 def train(d):
     s_d = make_category_dict(d.source.values)
@@ -54,47 +40,7 @@ def train(d):
     #                           ))
     return (regressors, s_d, t_d, enc)
 
-def city_feature(d):
-    cities = -np.ones(len(d.id))
-    for (j, lat) in enumerate(d.latitude):
-        for (i, bounds) in enumerate(city_extraction.boundaries):
-            if bounds[0] < lat < bounds[1]:
-                cities[j] = i
-                break
-            if cities[j] == -1:
-                cities[j] = 4
-                # Really we should figure this out.
-    return cities
 
-def sgd_example():
-    n_samples, n_features = 10, 5
-    np.random.seed(0)
-    y = np.random.randn(n_samples)
-    X = np.random.randn(n_samples, n_features)
-    clf = linear_model.SGDRegressor()
-    clf.fit(X, y)
-    return clf
-
-def make_category_dict(feature):
-    category_dict = dict()
-    count = 0
-    for string in feature:
-        if not (string in category_dict):
-            category_dict[string] = count
-            count += 1
-    return category_dict
-
-def feature_to_int(feature, category_dict = None):
-    if category_dict is None:
-        category_dict = make_category_dict(feature)
-    int_feature = []
-    for s in feature:
-        if s in category_dict:
-            int_feature.append(category_dict[s])
-        else:
-            print(s)
-            int_feature.append(0)
-    return int_feature
 
 def tog(x):
     return np.log(x + 1)
@@ -149,37 +95,39 @@ def predict(regressors, s_d, t_d, enc, training_set = False):
         predictions = set_tog_means(predictions)
     return predictions
 
-def set_tog_means(predictions):
-    ''' Assume predictions is a 3 tuple of arrays: first comment predictions,
-    then views, then votes.'''
-    log_mean_comments = 0.02665824
-    log_mean_views = 0.41264568
-    log_mean_votes = 0.80850881
-    means = (log_mean_comments,
-             log_mean_views,
-             log_mean_votes)
+class Predictions:
+    ''' Represents a set of test predictions. '''
+    def __init__(self, comment_p, view_p, vote_p):
+        self.comment_p = comment_p
+        self.view_p = view_p
+        self.vote_p = vote_p
 
-    scaled_predictions = []
-    guesses = [] #TODO guesses does nothing? - MV
-    for (m, p) in zip(means, predictions):
-        scaled_predictions.append(set_tog_mean(p, m))
-    return scaled_predictions
+    def set_tog_means(self):
+        ''' Assume predictions is a 3 tuple of arrays: first comment predictions,
+        then views, then votes.'''
+        log_mean_comments = 0.02665824
+        log_mean_views = 0.41264568
+        log_mean_votes = 0.80850881
+        means = (log_mean_comments,
+                 log_mean_views,
+                 log_mean_votes)
 
-def set_tog_mean(arr, m):
-    scale_factor_lb = 0
-    scale_factor_ub = 2
-    while scale_factor_ub - scale_factor_lb > 10**(-7):
-        guess = (scale_factor_ub + scale_factor_lb) /2.0
-        if np.mean(tog(guess * arr)) > m:
-            scale_factor_ub = guess
-        else:
-            scale_factor_lb = guess
-    print('''Correction factor: {0}.'''.format(guess))
-    return guess * arr
+        scaled_predictions = []
+        for (m, p) in zip(means, predictions):
+            scaled_predictions.append(set_tog_mean(p, m))
+        return scaled_predictions
 
-if __name__ == "__main__":
-    d = load_data()
-    train(d)
+    def set_tog_mean(arr, m):
+        scale_factor_lb = 0
+        scale_factor_ub = 2
+        while scale_factor_ub - scale_factor_lb > 10**(-7):
+            guess = (scale_factor_ub + scale_factor_lb) /2.0
+            if np.mean(tog(guess * arr)) > m:
+                scale_factor_ub = guess
+            else:
+                scale_factor_lb = guess
+        print('''Correction factor: {0}.'''.format(guess))
+        return guess * arr
 
 def make_vw_training_set(d, features):
     with open("data/vowpal_training.vw","w") as handle:

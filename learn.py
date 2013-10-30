@@ -81,11 +81,18 @@ class Model:
         print(time.time() - start)
 
     def predict(self, training_set = False):
+        
+        if training_set:
+            data = self.tr_d
+        else:
+            data = self.te_d
+        
         data = self.tr_d if training_set else self.te_d
-        te_features = self.__make_features__(self.te_d) 
+
+        features = self.__make_features__(data) 
         prediction_arr = []
         for r in self.regressors:
-            prediction_arr.append(untog(r.predict(te_features)))
+            prediction_arr.append(untog(r.predict(features)))
             prediction_arr[-1]  = np.maximum(prediction_arr[-1], 0)
         predictions = Predictions(prediction_arr[0], prediction_arr[1], prediction_arr[2])
         if not training_set:

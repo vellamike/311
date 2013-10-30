@@ -1,5 +1,6 @@
 # Various things we could try
 
+Warning: I've written many things down here, but most of them will turn out to be relatively unimportant! Let's be careful what we spend our time on. We don't need to do all these things...
 
 ## Miscellaneous 
 * Move code from notebooks when it is useful to keep.

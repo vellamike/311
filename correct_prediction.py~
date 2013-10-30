@@ -1,6 +1,0 @@
-#Quick hack by MV and BD to see if correction to make togs equal
-#In our submission and test data helps.
-
-import pandas
-
-data = pandas.io.parsers.read_csv('/home/ben/Desktop/447306/niche_means_fudged.csv'

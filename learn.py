@@ -106,7 +106,7 @@ class Predictions:
         self.view_p = view_p
         self.vote_p = vote_p
 
-def train_predict(d, outfile = "data/ML_predictions.csv"):
+    def training_set_error(training_data):
         d = training_data 
         e1 = tog(d.num_comments.values) - tog(self.comment_p)
         e2 = tog(d.num_views.values) - tog(self.view_p)
@@ -124,7 +124,8 @@ def train_predict(d, outfile = "data/ML_predictions.csv"):
         self.corrected = True
 
     @staticmethod
-    arr = np.array(arr) #solves a silly bug
+    def __set_tog_mean__(arr, m):
+        arr = np.array(arr) # solves an annoying bug
         scale_factor_lb = 0
         scale_factor_ub = 2
         while scale_factor_ub - scale_factor_lb > 10**(-7):
@@ -139,7 +140,7 @@ def train_predict(d, outfile = "data/ML_predictions.csv"):
     def write(file = "predictions.csv"):
         assert(self.corrected)
         assert(np.min(self.vote_p)>= 1)
-    train_predict(d)
+
         id = ['id']
         num_views = ['num_views']
         num_votes = ['num_votes']

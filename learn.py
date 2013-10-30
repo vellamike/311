@@ -102,7 +102,7 @@ def tog(x):
 def untog(x):
     return np.exp(x) - 1
 
-def train_predict(d, outfile = "data/predictions.csv"):
+def train_predict(d, outfile = "data/ML_predictions.csv"):
     (regressors, s_d, t_d, enc) = train(d)
     training_predictions = predict(regressors, s_d, t_d, enc, training_set = True)
     # training set prediction error
@@ -166,6 +166,7 @@ def set_tog_means(predictions):
     return scaled_predictions
 
 def set_tog_mean(arr, m):
+    arr = np.array(arr) #solves a silly bug
     scale_factor_lb = 0
     scale_factor_ub = 2
     while scale_factor_ub - scale_factor_lb > 10**(-7):
@@ -180,6 +181,7 @@ def set_tog_mean(arr, m):
 if __name__ == "__main__":
     d = load_data()
     train(d)
+    train_predict(d)
 
 def make_vw_training_set(d, features):
     with open("data/vowpal_training.vw","w") as handle:

@@ -14,6 +14,7 @@ Warning: I've written many things down here, but most of them will turn out to b
 * ~~How do the means compare to the means of the last two months of the training data.~~
 * Are the city tog means in the test data what we expect?
 * How useful would it be to probe the test data set again in time?
+* Can we combine the mean information we have for the remote_api with that for the first and second halves of the test data?
 
 ## Features
 * Use geographical data. Neighbourhoods of cities. Use clustering capability of scikit

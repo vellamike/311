@@ -16,11 +16,11 @@ data = pandas.read_csv('/home/mike/dev/311/data/train.csv')
 
 # <codecell>
 
- city_1_boundaries = (37.4,37.7)
- city_2_boundaries = (37.7,37.9)
- city_3_boundaries = (41.24,41.3)
- city_4_boundaries = (41.3,41.4)
- city_5_boundaries = (41.6,42.1)
+city_1_boundaries = (37.4,37.7)
+city_2_boundaries = (37.7,37.9)
+city_3_boundaries = (41.24,41.3)
+city_4_boundaries = (41.3,41.4)
+city_5_boundaries = (41.6,42.1)
 
 # <headingcell level=3>
 

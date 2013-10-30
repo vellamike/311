@@ -18,13 +18,19 @@ import time
 import io
 
 # our code
-import city_extraction
+from features import *
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
+def make_predictions():
+    m = Model()
+    m.train()
+    predictions = m.predict()
+    return (m, predictions)
+
 def load_data(training_set):
     ''' Loads training or test data. '''
-    if training:
+    if training_set:
         return pandas.read_csv("data/train.csv")
     else:
         return pandas.read_csv("data/test.csv")
@@ -44,43 +50,44 @@ class Model:
             self.tr_d = load_data(training_set = True)
         if test_data is None:
             self.te_d = load_data(training_set = False)
+        self.enc = None
 
-    def __make_features__(self):
-        int_features = np.zeros((len(self.tr_d.id), 4))
-        int_features[:,0] = feature_to_int(self.tr_d.source.values, category_dict = self.s_d) 
+    def __make_features__(self, d):
+        int_features = np.zeros((len(d.id), 4))
+        int_features[:,0] = feature_to_int(d.source.values, category_dict = self.s_d) 
         # 9 values in training set
         int_features[:,1] = feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
-        int_features[:,2] = city_feature(self.tr_d)
-        int_features[:,3] = map(int, self.tr_d.description > 0)
+        int_features[:,2] = city_feature(d)
+        int_features[:,3] = map(int, d.description > 0)
         # 43 values in training set
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder()
-            self.encoded_features =  self.enc.fit_transform(int_features).todense()
+            encoded_features = self.enc.fit_transform(int_features).todense()
         else:
-            self.encoded_features = self.enc.transform(int_features).todense()
+            encoded_features = self.enc.transform(int_features).todense()
+        return encoded_features
 
     def train(self):
-        self.s_d = make_category_dict(d.source.values)
-        self.t_d = make_category_dict(d.tag_type.values)
-        self.make_features()
+        self.s_d = make_category_dict(self.tr_d.source.values)
+        self.t_d = make_category_dict(self.tr_d.tag_type.values)
+        tr_features = self.__make_features__(self.tr_d)
         self.regressors = []
         start = time.time()
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss", n_iter = 10, alpha = 0, power_t
                             = 0.1, shuffle = True)
-            r.fit(features, tog(self.tr_d[col_name].values))
+            r.fit(tr_features, tog(self.tr_d[col_name].values))
             self.regressors.append(r)
         print(time.time() - start)
 
-    def predict(regressors, s_d, t_d, enc, training_set = False):
+    def predict(self, training_set = False):
         data = self.tr_d if training_set else self.te_d
-        (test_features, enc) = make_features(data, source_dic = s_d, tag_dic = t_d,
-                                      enc = enc)
-        predictions = []
-        for r in regressors:
-            predictions.append(untog(r.predict(test_features)))
-            predictions[-1]  = np.maximum(predictions[-1], 0)
-        
+        te_features = self.__make_features__(self.te_d) 
+        prediction_arr = []
+        for r in self.regressors:
+            prediction_arr.append(untog(r.predict(te_features)))
+            prediction_arr[-1]  = np.maximum(prediction_arr[-1], 0)
+        predictions = Predictions(prediction_arr[0], prediction_arr[1], prediction_arr[2])
         if not training_set:
             predictions.correct_means()
         return predictions
@@ -104,11 +111,12 @@ class Predictions:
         log_mean_comments = 0.02665824
         log_mean_views = 0.41264568
         log_mean_votes = 0.80850881
-        self.comment_p = set_tog_mean(self.comment_p, log_mean_comments) 
-        self.view_p = set_tog_mean(self.view_p, log_mean_views)
-        self.vote_p = set_tog_mean(self.vote_p, log_mean_votes)
+        self.comment_p = Predictions.__set_tog_mean__(self.comment_p, log_mean_comments) 
+        self.view_p = Predictions.__set_tog_mean__(self.view_p, log_mean_views)
+        self.vote_p = Predictions.__set_tog_mean__(self.vote_p, log_mean_votes)
         self.corrected = True
 
+    @staticmethod
     def __set_tog_mean__(arr, m):
         scale_factor_lb = 0
         scale_factor_ub = 2
@@ -123,6 +131,7 @@ class Predictions:
 
     def write(file = "predictions.csv"):
         assert(self.corrected)
+        assert(np.min(self.vote_p)>= 1)
 
         id = ['id']
         num_views = ['num_views']

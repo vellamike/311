@@ -63,7 +63,8 @@ class Model(object):
         int_features[:,0] = features.feature_to_int(d.source.values, category_dict = self.s_d) 
         # 9 values in training set
         int_features[:,1] = features.feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
-        int_features[:,2] = features.city_feature(d)
+
+        int_features[:,2] = features.city_feature(d) 
         int_features[:,3] = map(int, d.description > 0)
         int_features[:,4] = map(weekday,d.created_time.values) #test
         

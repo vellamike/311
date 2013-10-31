@@ -97,9 +97,10 @@ class Model(object):
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
                              n_iter = 10,
-                             alpha = 0,
+                             alpha = 0.01,
                              power_t = 0.1,
-                             shuffle = True)
+                             shuffle = True,
+                             verbose = 0)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 

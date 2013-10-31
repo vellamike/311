@@ -113,8 +113,6 @@ class Model(object):
             data = self.tr_d
         else:
             data = self.te_d
-        
-        data = self.tr_d if training_set else self.te_d
 
         features = self.__make_features__(data) 
         prediction_arr = []

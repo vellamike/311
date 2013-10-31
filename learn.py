@@ -55,12 +55,18 @@ class Model(object):
         self.enc = None
 
     def __make_features__(self, d):
-        int_features = np.zeros((len(d.id), 4))
+
+        import datetime
+        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
+
+        int_features = np.zeros((len(d.id), 5))
         int_features[:,0] = features.feature_to_int(d.source.values, category_dict = self.s_d) 
         # 9 values in training set
         int_features[:,1] = features.feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
         int_features[:,2] = features.city_feature(d)
         int_features[:,3] = map(int, d.description > 0)
+        int_features[:,4] = map(weekday,d.created_time.values) #test
+        
         # 43 values in training set
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder()

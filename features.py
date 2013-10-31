@@ -16,9 +16,9 @@ def city_feature(d):
             if bounds[0] < lat < bounds[1]:
                 cities[j] = i
                 break
-            if cities[j] == -1:
-                cities[j] = 4
-                # Really we should figure this out.
+        if cities[j] == -1:
+            cities[j] = 4
+            # Really we should figure this out.
     return cities
 
 

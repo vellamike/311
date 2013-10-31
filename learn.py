@@ -19,16 +19,18 @@ import io
 import datetime
 
 # our code
-#from features import * #best to avoid this
 import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def make_predictions():
-    m = Model()
+    tr_d = load_data(True)
+    te_d = load_data(False)
+    m = Model(tr_d[30000:])
     m.train()
-    predictions = m.predict(training_set = True)
-    print(predictions.training_set_error(load_data(True)))
+    predictions = m.predict(data = te_d)
+    #print(predictions.training_set_error(tr_d[-30000:]))
+    #predictions.write()
     return (m, predictions)
 
 #TODO - This fn is confusing IMO,
@@ -112,8 +114,12 @@ class Model(object):
     def __init__(self, training_data = None, test_data = None):
         if training_data is None:
             self.tr_d = load_data(training_set = True)
+        else:
+            self.tr_d = training_data
         if test_data is None:
             self.te_d = load_data(training_set = False)
+        else:
+            self.te_d = test_data
         self.enc = None
         self.beast_encoder = None
 
@@ -130,15 +136,24 @@ class Model(object):
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
-            'city': features.city_feature(d)} 
+            'city': features.city_feature(d) #5
+        }
 
         for a in feature_dic.values():
             if not (len(a) == len(d.id.values)):
                 pdb.set_trace()
         
         if self.beast_encoder is None:
-            self.beast_encoder = F('weekday') + F('tag_type') * F('source') * F('city')+\
-                                 F('description')
+            be_pw = F('tag_type') * F('source') + \
+                                 F('tag_type') * F('city') +\
+                                 F('tag_type') * F('weekday') +\
+                                 F('source') * F('city') + \
+                                 F('source') * F('weekday') +\
+                                 F('city') * F('weekday')
+            be_small_niche = (F('tag_type') * F('source') * F('city'))
+            be_linear = F('tag_type') + F('source') + F('city') +\
+                        F('weekday') + F('description')
+            self.beast_encoder = be_pw
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
@@ -171,7 +186,7 @@ class Model(object):
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
                              n_iter = 10,
-                             alpha = 0.01,
+                             alpha = 0.001,
                              power_t = 0.1,
                              shuffle = True)
 
@@ -181,12 +196,12 @@ class Model(object):
 
             print(time.time() - start)
 
-    def predict(self, training_set = False):
-        
-        if training_set:
-            data = self.tr_d
-        else:
-            data = self.te_d
+    def predict(self, data = None, training_set = True):
+        if data is None:
+            if training_set:
+                data = self.tr_d
+            else:
+                data = self.te_d
 
         features = self.__make_features__(data) 
         print("features: " + str(features.shape))
@@ -237,7 +252,7 @@ class Predictions(object):
         print('''Correction factor: {0}.'''.format(guess))
         return guess * arr
 
-    def write(file = "predictions.csv"):
+    def write(self, d, file = "predictions.csv"):
         assert(self.corrected)
         assert(np.min(self.vote_p)>= 1)
 

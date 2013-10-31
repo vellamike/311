@@ -18,7 +18,8 @@ import time
 import io
 
 # our code
-from features import *
+#from features import * #best to avoid this
+import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
@@ -28,6 +29,7 @@ def make_predictions():
     predictions = m.predict()
     return (m, predictions)
 
+#TODO - This fn is confusing IMO,
 def load_data(training_set):
     ''' Loads training or test data. '''
     if training_set:
@@ -44,7 +46,7 @@ def untog(x):
 def rms(x):
     return np.sqrt(np.sum(x**2)/len(x))
 
-class Model:
+class Model(object):
     def __init__(self, training_data = None, test_data = None):
         if training_data is None:
             self.tr_d = load_data(training_set = True)
@@ -54,10 +56,10 @@ class Model:
 
     def __make_features__(self, d):
         int_features = np.zeros((len(d.id), 4))
-        int_features[:,0] = feature_to_int(d.source.values, category_dict = self.s_d) 
+        int_features[:,0] = features.feature_to_int(d.source.values, category_dict = self.s_d) 
         # 9 values in training set
-        int_features[:,1] = feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
-        int_features[:,2] = city_feature(d)
+        int_features[:,1] = features.feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
+        int_features[:,2] = features.city_feature(d)
         int_features[:,3] = map(int, d.description > 0)
         # 43 values in training set
         if self.enc is None:
@@ -68,17 +70,35 @@ class Model:
         return encoded_features
 
     def train(self):
-        self.s_d = make_category_dict(self.tr_d.source.values)
-        self.t_d = make_category_dict(self.tr_d.tag_type.values)
+        """
+        Train the model from the training set.
+
+        Currently using SGDRegressor
+        """
+
+        #this stage is confusing, s_d needs to work for
+        #__make_features__ to work properly
+        self.s_d = features.make_category_dict(self.tr_d.source.values)
+        self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
+
+        #return the encoded set of features
         tr_features = self.__make_features__(self.tr_d)
+
         self.regressors = []
+
         start = time.time()
         for col_name in cols_to_predict:
-            r = SGDRegressor(loss = "squared_loss", n_iter = 10, alpha = 0, power_t
-                            = 0.1, shuffle = True)
+            r = SGDRegressor(loss = "squared_loss",
+                             n_iter = 10,
+                             alpha = 0,
+                             power_t = 0.1,
+                             shuffle = True)
+
             r.fit(tr_features, tog(self.tr_d[col_name].values))
+
             self.regressors.append(r)
-        print(time.time() - start)
+
+            print(time.time() - start)
 
     def predict(self, training_set = False):
         
@@ -99,14 +119,14 @@ class Model:
             predictions.correct_means()
         return predictions
 
-class Predictions:
+class Predictions(object):
     ''' Represents a set of test predictions. '''
     def __init__(self, comment_p, view_p, vote_p):
         self.comment_p = comment_p
         self.view_p = view_p
         self.vote_p = vote_p
 
-    def training_set_error(training_data):
+    def training_set_error(self,training_data):
         d = training_data 
         e1 = tog(d.num_comments.values) - tog(self.comment_p)
         e2 = tog(d.num_views.values) - tog(self.view_p)

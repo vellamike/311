@@ -96,9 +96,9 @@ class Model(object):
         start = time.time()
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 10,
+                             n_iter = 1000,
                              alpha = 0,
-                             power_t = 0.1,
+                             power_t = 0.01,
                              shuffle = True)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))

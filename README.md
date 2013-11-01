@@ -20,6 +20,7 @@ Warning: I've written many things down here, but most of them will turn out to b
 ## Features
 * Use geographical data. Neighbourhoods of cities. Use clustering capability of scikit OR avoid the clustering and do
   some 2D histograms with numpy & matplotlib. Humans probably very good at this.
+* Use locatity data: http://sedac.ciesin.columbia.edu/data/set/usgrid-summary-file3-2000-msa
 * Position relative to centre of city
 * Use text
 

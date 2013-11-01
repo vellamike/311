@@ -16,17 +16,21 @@ import pdb
 import math
 import time
 import io
+import datetime
 
 # our code
-#from features import * #best to avoid this
 import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def make_predictions():
-    m = Model()
+    tr_d = load_data(True)
+    te_d = load_data(False)
+    m = Model(tr_d[30000:])
     m.train()
-    predictions = m.predict()
+    predictions = m.predict(data = te_d)
+    #print(predictions.training_set_error(tr_d[-30000:]))
+    #predictions.write()
     return (m, predictions)
 
 #TODO - This fn is confusing IMO,
@@ -46,29 +50,114 @@ def untog(x):
 def rms(x):
     return np.sqrt(np.sum(x**2)/len(x))
 
+class BeastEncoder:
+    def __add__(self, other):
+        return AddEncoder(self, other)
+    def __mul__(self, other):
+        return MulEncoder(self, other)
+    def fit(self, d):
+        return self
+    def transform(self, d):
+        return self
+
+class AddEncoder(BeastEncoder):
+    def __init__(self, first, second):
+        self.first = first
+        self.second = second
+    def fit(self, d):
+        self.first.fit(d)
+        self.second.fit(d)
+        self.shape = self.first.shape + self.second.shape
+        return self
+    def transform(self, d):
+        return np.vstack((self.first.transform(d), self.second.transform(d)))
+    def __repr__(self):
+        return "(" + str(self.first) + " + " + str(self.second) + ")"
+
+class MulEncoder(BeastEncoder):
+    def __init__(self, first, second):
+        self.first = first
+        self.second = second
+    def fit(self, d):
+        self.first.fit(d)
+        self.second.fit(d)
+        self.shape = []
+        for v in self.first.shape:
+            for w in self.second.shape:
+                self.shape.append(v * w)
+        return self
+    def transform(self, d):
+        tf = self.first.transform(d)
+        ts = self.second.transform(d)
+        cols = []
+        for (cf, v) in zip(tf, self.first.shape):
+            for (cs, w) in zip(ts, self.second.shape):
+                cols.append(v * cs + cf)
+        return np.vstack(cols)
+    def __repr__(self):
+        return str(self.first) + " * " + str(self.second)
+
+class F(BeastEncoder):
+    def __init__(self, str):
+        self.str = str
+    def fit(self, d):
+        self.shape = [len(set(d[self.str]))]
+        return self
+    def transform(self, d):
+        return np.array([d[self.str]])
+    def __repr__(self):
+        return self.str
+
+
+
 class Model(object):
     def __init__(self, training_data = None, test_data = None):
         if training_data is None:
             self.tr_d = load_data(training_set = True)
+        else:
+            self.tr_d = training_data
         if test_data is None:
             self.te_d = load_data(training_set = False)
+        else:
+            self.te_d = test_data
         self.enc = None
+        self.beast_encoder = None
 
     def __make_features__(self, d):
-
-        import datetime
-        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
-
-        int_features = np.zeros((len(d.id), 5))
-        int_features[:,0] = features.feature_to_int(d.source.values, category_dict = self.s_d) 
-        # 9 values in training set
-        int_features[:,1] = features.feature_to_int(self.tr_d.tag_type.values, category_dict = self.t_d)
-
-        int_features[:,2] = features.city_feature(d) 
-        int_features[:,3] = map(int, d.description > 0)
-        int_features[:,4] = map(weekday,d.created_time.values) #test
         
-        # 43 values in training set
+        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
+        
+        
+        feature_dic = {
+            'weekday': map(weekday,d.created_time.values), # 7
+            'source' : features.feature_to_int(d.source.values, # 9 
+                                               category_dict =\
+                                               self.s_d),
+            'tag_type' : features.feature_to_int(d.tag_type.values, # 43
+                                                 category_dict = self.t_d),
+            'description' : map(int, d.description > 0),
+            'city': features.city_feature(d) #5
+        }
+
+        for a in feature_dic.values():
+            if not (len(a) == len(d.id.values)):
+                pdb.set_trace()
+        
+        if self.beast_encoder is None:
+            be_pw = F('tag_type') * F('source') + \
+                                 F('tag_type') * F('city') +\
+                                 F('tag_type') * F('weekday') +\
+                                 F('source') * F('city') + \
+                                 F('source') * F('weekday') +\
+                                 F('city') * F('weekday')
+            be_small_niche = (F('tag_type') * F('source') * F('city'))
+            be_linear = F('tag_type') + F('source') + F('city') +\
+                        F('weekday') + F('description')
+            self.beast_encoder = be_pw
+            self.beast_encoder.fit(feature_dic)
+
+        int_features = self.beast_encoder.transform(feature_dic).transpose()
+        print("int_features: "+str(int_features.shape))
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder()
             encoded_features = self.enc.fit_transform(int_features).todense()
@@ -96,9 +185,9 @@ class Model(object):
         start = time.time()
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 1000,
-                             alpha = 0,
-                             power_t = 0.01,
+                             n_iter = 10,
+                             alpha = 0.001,
+                             power_t = 0.1,
                              shuffle = True)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
@@ -107,16 +196,15 @@ class Model(object):
 
             print(time.time() - start)
 
-    def predict(self, training_set = False):
-        
-        if training_set:
-            data = self.tr_d
-        else:
-            data = self.te_d
-        
-        data = self.tr_d if training_set else self.te_d
+    def predict(self, data = None, training_set = True):
+        if data is None:
+            if training_set:
+                data = self.tr_d
+            else:
+                data = self.te_d
 
         features = self.__make_features__(data) 
+        print("features: " + str(features.shape))
         prediction_arr = []
         for r in self.regressors:
             prediction_arr.append(untog(r.predict(features)))
@@ -164,7 +252,7 @@ class Predictions(object):
         print('''Correction factor: {0}.'''.format(guess))
         return guess * arr
 
-    def write(file = "predictions.csv"):
+    def write(self, d, file = "predictions.csv"):
         assert(self.corrected)
         assert(np.min(self.vote_p)>= 1)
 

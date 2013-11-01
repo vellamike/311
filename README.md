@@ -27,3 +27,7 @@ Warning: I've written many things down here, but most of them will turn out to b
 * Try GBM model.
 * Train machine learning on the final months of test data.
 * Play around with several different models.
+
+
+# Submission information
+Thu, 31 Oct 2013 22:52:37 - First submission using the Beast Encoder. SGD. alpha = 0.001. p_t = 0.1. shuffle = True. Pairwise encoded features: tag, source, city, weekday, description flag.

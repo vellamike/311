@@ -3,18 +3,14 @@
 Warning: I've written many things down here, but most of them will turn out to be relatively unimportant! Let's be careful what we spend our time on. We don't need to do all these things...
 
 ## Miscellaneous 
+* Look for duplicates in test data. How common are they? (As suggested by winner of hackathon.) Interesting thing I spotted: the city often marks duplicates as closed. Doing this removes the option to vote. Can we use this?
 * Move code from notebooks when it is useful to keep.
-* Write readme
 * Plot proportion of data in each small niche for the traning and test data sets.
-* ~~Add assert statement to stop us predicting that anything has less than one vote.~~
-* Look for duplicates in test data. How common are they? (As suggested by winner of hackathon.)
 
 ## Mean probing
-* ~~Figure out why the means have gone down~~
-* ~~How do the means compare to the means of the last two months of the training data.~~
 * Are the city tog means in the test data what we expect?
 * How useful would it be to probe the test data set again in time?
-* Can we combine the mean information we have for the remote_api with that for the first and second halves of the test data?
+* Can we combine the mean information we have for the remoteapi with that for the first and second halves of the test data?
 * Think in terms of excess votes (>1).
 
 ## Features
@@ -33,4 +29,4 @@ Warning: I've written many things down here, but most of them will turn out to b
 
 
 # Submission information
-Thu, 31 Oct 2013 22:52:37 - First submission using the Beast Encoder. SGD. alpha = 0.001. p_t = 0.1. shuffle = True. Pairwise encoded features: tag, source, city, weekday, description flag.
+Thu, 31 Oct 2013 22:52:37 - First submission using the Beast Encoder. SGD. alpha = 0.001. pt = 0.1. shuffle = True. Pairwise encoded features: tag, source, city, weekday, description flag.

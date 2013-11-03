@@ -1,5 +1,6 @@
 ''' Makes and processes features. '''
 import numpy as np
+from sklearn.cluster import KMeans
 
 boundaries = [(37.4,37.7),
 (37.7,37.9),
@@ -8,6 +9,12 @@ boundaries = [(37.4,37.7),
 (41.6,42.1)]
 
 
+def neighbourhoods(d):
+    km = KMeans(n_clusters = 16, n_jobs = -1, n_init = 20, random_state = 7)
+    spatial_data = d[['latitude', 'longitude']]
+    clusters = km.fit_predict(spatial_data)
+    print(km.score(spatial_data))
+    return (km, clusters)
 
 def city_feature(d):
     cities = -np.ones(len(d.id))

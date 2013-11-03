@@ -23,14 +23,32 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def make_predictions():
+def test_prediction_alg():
+    tr_d = load_data(True)
+    te_d = load_data(False)
+    m = Model(tr_d[30000:-30000])
+    m.train()
+    predictions = m.predict(data = tr_d[-30000:])
+    print(predictions.training_set_error(tr_d[-30000:]))
+    #predictions.write()
+    e = tr_d[-30000:]
+    e['vote_p'] = predictions.vote_p
+    e['view_p'] = predictions.view_p
+    e['comment_p'] = predictions.comment_p
+    return (m, predictions, e)
+
+def identify_dupes(data_set = None):
+    pass
+
+def make_predictions2():
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[30000:])
     m.train()
     predictions = m.predict(data = te_d)
-    #print(predictions.training_set_error(tr_d[-30000:]))
-    #predictions.write()
+    predictions.correct_means()
+    predictions.vote_p = np.maximum(predictions.vote_p, 1)
+    predictions.write(te_d)
     return (m, predictions)
 
 #TODO - This fn is confusing IMO,
@@ -108,7 +126,31 @@ class F(BeastEncoder):
     def __repr__(self):
         return self.str
 
+chicago_replacement_dic = {'Abandoned Vehicle': 'abandoned_vehicle',
+                       'Alley Light Out': 'street_light',
+                       'Building Violation': 'building_violation',
+                       'Graffiti Removal': 'graffiti',
+                       'Pavement Cave-In Survey': 'pavement_survey',
+                       'Pothole in Street': 'pothole',
+                       'Restaurant Complaint': 'restaurant',
+                       'Rodent Baiting / Rat Complaint': 'rodents',
+                       'Sanitation Code Violation': 'sanitation',
+                       'Street Cut Complaints': 'street_cut',
+                       'Street Light 1 / Out': 'street_light',
+                       'Street Lights All / Out': 'street_light',
+                       'Traffic Signal Out': 'street_signal',
+                       'Tree Debris': 'tree'}
 
+
+def chicago_fix(d):
+    for (i, (l, so, su)) in enumerate(zip(d.latitude, d.source, d.summary)):
+        if l > 41.5:
+            if so == "remote_api_created":
+                try:
+                    d.tag_type.values[i] = chicago_replacement_dic[su]
+                except:
+                    pdb.set_trace()
+    return d
 
 class Model(object):
     def __init__(self, training_data = None, test_data = None):
@@ -122,11 +164,22 @@ class Model(object):
             self.te_d = test_data
         self.enc = None
         self.beast_encoder = None
+        self.km = None
+        #self.te_d = chicago_fix(self.te_d)
+
+
+
+
+
+
 
     def __make_features__(self, d):
-        
         weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
-        
+       
+        if self.km is None:
+            (self.km, clusters) = features.neighbourhoods(d)
+        else:
+            clusters = self.km.predict(d[['latitude','longitude']])
         
         feature_dic = {
             'weekday': map(weekday,d.created_time.values), # 7
@@ -136,7 +189,7 @@ class Model(object):
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
-            'city': features.city_feature(d) #5
+            'city': clusters #10
         }
 
         for a in feature_dic.values():
@@ -145,15 +198,23 @@ class Model(object):
         
         if self.beast_encoder is None:
             be_pw = F('tag_type') * F('source') + \
-                                 F('tag_type') * F('city') +\
-                                 F('tag_type') * F('weekday') +\
-                                 F('source') * F('city') + \
-                                 F('source') * F('weekday') +\
-                                 F('city') * F('weekday')
+                     F('tag_type') * F('city') +\
+                     F('tag_type') * F('weekday') +\
+                     F('source') * F('city') + \
+                     F('source') * F('weekday') +\
+                     F('city') * F('weekday')
+            be_city_focus = F('city') * (\
+                                         F('weekday') +\
+                                         F('description') +\
+                                         F('source') * F('tag_type') + \
+                                         F('source') * F('description') \
+                                         + F('tag_type') * F('description')\
+                                         )
+
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description')
-            self.beast_encoder = be_pw
+            self.beast_encoder = be_city_focus
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
@@ -161,6 +222,7 @@ class Model(object):
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder()
             encoded_features = self.enc.fit_transform(int_features).todense()
+            print("Encoded feature shape: "+str(encoded_features.shape))
         else:
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
@@ -185,10 +247,11 @@ class Model(object):
         start = time.time()
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 10,
-                             alpha = 0.001,
-                             power_t = 0.1,
-                             shuffle = True)
+                             n_iter = 5,
+                             alpha = 0,
+                             power_t = 0.2,
+                             shuffle = True,
+                             random_state = 7)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 
@@ -280,3 +343,8 @@ def make_vw_training_set(d, features):
                 #pdb.set_trace()
                 s += "{0}:{1} ".format(i, x)
             handle.write(s + '\n')
+
+if __name__ == "__main__":
+    #make_predictions2()
+    while True:
+        test_prediction_alg()

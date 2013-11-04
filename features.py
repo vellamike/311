@@ -32,10 +32,11 @@ def city_feature(d):
 def make_category_dict(feature):
 
     category_dict = {}
-
-    for count,string in enumerate(feature):
+    count = 0
+    for string in feature:
         if not (string in category_dict):
             category_dict[string] = count
+            count += 1
     return category_dict
 
 

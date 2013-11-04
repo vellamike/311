@@ -24,9 +24,9 @@ import features
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def test_prediction_alg():
-    tr_d = load_data(True)
+    tr_d = load_data(True, after_row = 160000)
     te_d = load_data(False)
-    m = Model(tr_d[30000:-30000])
+    m = Model(tr_d[:-30000])
     m.train()
     predictions = m.predict(data = tr_d[-30000:])
     print(predictions.training_set_error(tr_d[-30000:]))
@@ -41,9 +41,9 @@ def identify_dupes(data_set = None):
     pass
 
 def make_predictions2():
-    tr_d = load_data(True)
+    tr_d = load_data(True, after_row = 30000)
     te_d = load_data(False)
-    m = Model(tr_d[30000:])
+    m = Model(tr_d)
     m.train()
     predictions = m.predict(data = te_d)
     predictions.correct_means()
@@ -121,6 +121,7 @@ class F(BeastEncoder):
         self.str = str
     def fit(self, d):
         self.shape = [len(set(d[self.str]))]
+        #self.shape = [np.max(d[self.str])+1]
         return self
     def transform(self, d):
         return np.array([d[self.str]])
@@ -168,12 +169,6 @@ class Model(object):
         self.km = None
         #self.te_d = chicago_fix(self.te_d)
 
-
-
-
-
-
-
     def __make_features__(self, d):
         weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
        
@@ -190,8 +185,13 @@ class Model(object):
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
-            'city': clusters #10
+            'city': features.city_feature(d) #clusters #10
         }
+
+        for f in feature_dic:
+            pass
+            #print(f)
+            #print(set(feature_dic[f]))
 
         for a in feature_dic.values():
             if not (len(a) == len(d.id.values)):
@@ -215,13 +215,15 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description')
-            self.beast_encoder = be_pw
+            self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
         print("int_features: "+str(int_features.shape))
         if self.enc is None:
-            self.enc = sklearn.preprocessing.OneHotEncoder()
+            self.enc = sklearn.preprocessing.OneHotEncoder(
+                                            #n_values = self.beast_encoder.shape
+                                               )
             encoded_features = self.enc.fit_transform(int_features).todense()
             print("Encoded feature shape: "+str(encoded_features.shape))
         else:
@@ -252,7 +254,8 @@ class Model(object):
                              alpha = 0,
                              power_t = 0.2,
                              shuffle = True,
-                             random_state = 7)
+                             #random_state = 7
+                            )
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 
@@ -332,6 +335,7 @@ class Predictions(object):
 
         with open(file,'w') as handle:
             for (id, comment, view, vote) in zip(ids, comments, views, votes):
+                assert(comment < 5)
                 handle.write("{0},{1},{2},{3}\n".format(id, view, vote, comment))
     
 def make_vw_training_set(d, features):

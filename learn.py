@@ -41,12 +41,14 @@ def identify_dupes(data_set = None):
     pass
 
 def make_predictions2():
-    tr_d = load_data(True, after_row = 30000)
+    tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d)
     m.train()
     predictions = m.predict(data = te_d)
+    assert(np.max(predictions.comment_p)<5)
     predictions.correct_means()
+    assert(np.max(predictions.comment_p)<5)
     predictions.vote_p = np.maximum(predictions.vote_p, 1)
     predictions.write(te_d)
     return (m, predictions)
@@ -322,16 +324,18 @@ class Predictions(object):
     def write(self, d, file = "predictions.csv"):
         assert(self.corrected)
         assert(np.min(self.vote_p)>= 1)
-
+        #pdb.set_trace()
         id = ['id']
         num_views = ['num_views']
         num_votes = ['num_votes']
         num_comments = ['num_comments']
 
-        ids = np.concatenate([id, d['id'].values.astype(dtype = 'S')])
-        comments = np.concatenate([num_comments, self.comment_p])
-        views = np.concatenate([num_views, self.view_p])
-        votes = np.concatenate([num_votes, self.vote_p])
+        ids = d['id'].values # np.concatenate([id, d['id'].values.astype(dtype = 'S')])
+        assert(np.max(self.comment_p)<5)
+        comments = self.comment_p# np.concatenate([num_comments, self.comment_p])
+        assert(np.max(comments)<5)
+        views = self.view_p# np.concatenate([num_views, self.view_p])
+        votes = self.vote_p# np.concatenate([num_votes, self.vote_p])
 
         with open(file,'w') as handle:
             for (id, comment, view, vote) in zip(ids, comments, views, votes):

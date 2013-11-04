@@ -10,7 +10,7 @@ boundaries = [(37.4,37.7),
 
 
 def neighbourhoods(d):
-    km = KMeans(n_clusters = 16, n_jobs = -1, n_init = 20, random_state = 7)
+    km = KMeans(n_clusters = 4, n_jobs = -1, n_init = 20, random_state = 7)
     spatial_data = d[['latitude', 'longitude']]
     clusters = km.fit_predict(spatial_data)
     print(km.score(spatial_data))

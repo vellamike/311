@@ -52,10 +52,11 @@ def make_predictions2():
     return (m, predictions)
 
 #TODO - This fn is confusing IMO,
-def load_data(training_set):
+def load_data(training_set,after_row = 113742):
     ''' Loads training or test data. '''
     if training_set:
-        return pandas.read_csv("data/train.csv")
+        d = pandas.read_csv("data/train.csv")
+        return d[after_row:]
     else:
         return pandas.read_csv("data/test.csv")
 
@@ -214,7 +215,7 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description')
-            self.beast_encoder = be_city_focus
+            self.beast_encoder = be_pw
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()

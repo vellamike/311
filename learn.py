@@ -54,7 +54,7 @@ def make_predictions2():
     return (m, predictions)
 
 #TODO - This fn is confusing IMO,
-def load_data(training_set,after_row = 113742):
+def load_data(training_set,after_row = 160000):
     ''' Loads training or test data. '''
     if training_set:
         d = pandas.read_csv("data/train.csv")

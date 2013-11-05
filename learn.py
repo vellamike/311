@@ -26,12 +26,12 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg():
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-30000])
+    m = Model(tr_d[:-10000])
     m.train()
-    predictions = m.predict(data = tr_d[-30000:])
-    print(predictions.training_set_error(tr_d[-30000:]))
+    predictions = m.predict(data = tr_d[-10000:])
+    print(predictions.training_set_error(tr_d[-10000:]))
     #predictions.write()
-    e = tr_d[-30000:]
+    e = tr_d[-10000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -251,14 +251,20 @@ class Model(object):
 
         start = time.time()
         for col_name in cols_to_predict:
+
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 5,
-                             alpha = 0,
+                             n_iter = 5, #empirically I found 40 to be slightly more effective - MV
+                             penalty='l2', #empirically I found elasticnet to be slightly more effective - MV
+                             
+                             alpha = 0.0,
                              power_t = 0.2,
                              shuffle = True,
                              #random_state = 7
                             )
 
+            #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
+
+            
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 
             self.regressors.append(r)

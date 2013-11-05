@@ -24,7 +24,7 @@ import features
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def test_prediction_alg():
-    tr_d = load_data(True, after_row = 160000)
+    tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[:-30000])
     m.train()
@@ -122,8 +122,8 @@ class F(BeastEncoder):
     def __init__(self, str):
         self.str = str
     def fit(self, d):
-        self.shape = [len(set(d[self.str]))]
-        #self.shape = [np.max(d[self.str])+1]
+        #self.shape = [len(set(d[self.str]))]
+        self.shape = [np.max(d[self.str])+1]
         return self
     def transform(self, d):
         return np.array([d[self.str]])
@@ -217,14 +217,14 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description')
-            self.beast_encoder = be_linear
+            self.beast_encoder = be_pw
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
         print("int_features: "+str(int_features.shape))
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder(
-                                            #n_values = self.beast_encoder.shape
+                                            n_values = self.beast_encoder.shape
                                                )
             encoded_features = self.enc.fit_transform(int_features).todense()
             print("Encoded feature shape: "+str(encoded_features.shape))

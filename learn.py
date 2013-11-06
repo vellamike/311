@@ -28,10 +28,10 @@ def test_prediction_alg():
     te_d = load_data(False)
     m = Model(tr_d[:-30000])
     m.train()
-    predictions = m.predict(data = tr_d[-30000:])
-    print(predictions.training_set_error(tr_d[-30000:]))
+    predictions = m.predict(data = tr_d[-5000:])
+    print(predictions.training_set_error(tr_d[-5000:]))
     #predictions.write()
-    e = tr_d[-30000:]
+    e = tr_d[-5000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -173,7 +173,9 @@ class Model(object):
 
     def __make_features__(self, d):
         weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
-       
+        hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
+        day_half = lambda timestr : hour(timestr) // 13
+
         if self.km is None:
             (self.km, clusters) = features.neighbourhoods(d)
         else:
@@ -187,7 +189,8 @@ class Model(object):
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
-            'city': features.city_feature(d) #clusters #10
+            'city': features.city_feature(d), #clusters #10
+            'day_half': map(day_half,d.created_time.values), # 4
         }
 
         for f in feature_dic:
@@ -205,7 +208,12 @@ class Model(object):
                      F('tag_type') * F('weekday') +\
                      F('source') * F('city') + \
                      F('source') * F('weekday') +\
-                     F('city') * F('weekday')
+                     F('city') * F('weekday') +\
+                     F('source') * F('day_half') +\
+                     F('tag_type') * F('day_half') +\
+                     F('city') * F('day_half') +\
+                     F('day_half') * F('weekday')
+
             be_city_focus = F('city') * (\
                                          F('weekday') +\
                                          F('description') +\
@@ -216,7 +224,7 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('weekday') + F('description')
+                        F('weekday') + F('description') +F('day_half')
             self.beast_encoder = be_pw
             self.beast_encoder.fit(feature_dic)
 
@@ -252,12 +260,21 @@ class Model(object):
         start = time.time()
         for col_name in cols_to_predict:
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 5,
-                             alpha = 0,
+                             n_iter =20,
+                             penalty = 'elasticnet',
+                             alpha = 0.0001,
                              power_t = 0.2,
                              shuffle = True,
                              #random_state = 7
                             )
+
+#            r = linear_model.Ridge(alpha=0.2, 
+#                                   copy_X=True, 
+#                                   fit_intercept=True,
+#                                   max_iter=None,
+#                                   normalize=True, 
+#                                   solver='auto', 
+#                                   tol=0.00001)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 

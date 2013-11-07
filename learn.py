@@ -26,12 +26,12 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg():
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-30000])
+    m = Model(tr_d[:-20000])
     m.train()
-    predictions = m.predict(data = tr_d[-5000:])
-    print(predictions.training_set_error(tr_d[-5000:]))
+    predictions = m.predict(data = tr_d[-20000:])
+    print(predictions.training_set_error(tr_d[-20000:]))
     #predictions.write()
-    e = tr_d[-5000:]
+    e = tr_d[-20000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -174,7 +174,7 @@ class Model(object):
     def __make_features__(self, d):
         weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
         hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
-        day_half = lambda timestr : hour(timestr) // 13
+        day_sixth = lambda timestr : hour(timestr) // 3
 
         if self.km is None:
             (self.km, clusters) = features.neighbourhoods(d)
@@ -190,7 +190,7 @@ class Model(object):
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
             'city': features.city_feature(d), #clusters #10
-            'day_half': map(day_half,d.created_time.values), # 4
+            'day_sixth': map(day_sixth,d.created_time.values), # 4
         }
 
         for f in feature_dic:
@@ -209,10 +209,10 @@ class Model(object):
                      F('source') * F('city') + \
                      F('source') * F('weekday') +\
                      F('city') * F('weekday') +\
-                     F('source') * F('day_half') +\
-                     F('tag_type') * F('day_half') +\
-                     F('city') * F('day_half') +\
-                     F('day_half') * F('weekday')
+                     F('source') * F('day_sixth') +\
+                     F('tag_type') * F('day_sixth') +\
+                     F('city') * F('day_sixth') +\
+                     F('day_sixth') * F('weekday')
 
             be_city_focus = F('city') * (\
                                          F('weekday') +\
@@ -224,7 +224,7 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('weekday') + F('description') +F('day_half')
+                        F('weekday') + F('description') +F('day_sixth')
             self.beast_encoder = be_pw
             self.beast_encoder.fit(feature_dic)
 

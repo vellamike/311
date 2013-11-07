@@ -17,6 +17,7 @@ import math
 import time
 import io
 import datetime
+from sklearn import ensemble
 
 # our code
 import features
@@ -26,12 +27,12 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg():
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-20000])
+    m = Model(tr_d[:-5000])
     m.train()
-    predictions = m.predict(data = tr_d[-20000:])
-    print(predictions.training_set_error(tr_d[-20000:]))
+    predictions = m.predict(data = tr_d[-5000:])
+    print(predictions.training_set_error(tr_d[-5000:]))
     #predictions.write()
-    e = tr_d[-20000:]
+    e = tr_d[-5000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -225,11 +226,14 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description') +F('day_sixth')
-            self.beast_encoder = be_pw
+            
+            self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
+        
         print("int_features: "+str(int_features.shape))
+        
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder(
                                             n_values = self.beast_encoder.shape
@@ -268,13 +272,18 @@ class Model(object):
                              #random_state = 7
                             )
 
-#            r = linear_model.Ridge(alpha=0.2, 
+#            r = linear_model.Ridge(alpha=0.0, 
 #                                   copy_X=True, 
 #                                   fit_intercept=True,
 #                                   max_iter=None,
 #                                   normalize=True, 
 #                                   solver='auto', 
 #                                   tol=0.00001)
+
+            r = ensemble.GradientBoostingRegressor(n_estimators=100,
+                                                   learning_rate=0.1,
+                                                   max_depth=3,
+                                                   verbose=0)
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 

@@ -27,12 +27,12 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg(regressor=None):
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-5000])
+    m = Model(tr_d[:-20000])
     m.train(regressor=regressor)
-    predictions = m.predict(data = tr_d[-5000:])
-    print(predictions.training_set_error(tr_d[-5000:]))
+    predictions = m.predict(data = tr_d[-20000:])
+    print(predictions.training_set_error(tr_d[-20000:]))
     #predictions.write()
-    e = tr_d[-5000:]
+    e = tr_d[-20000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p

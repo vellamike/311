@@ -24,11 +24,11 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg():
+def test_prediction_alg(regressor=None):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[:-5000])
-    m.train()
+    m.train(regressor=regressor)
     predictions = m.predict(data = tr_d[-5000:])
     print(predictions.training_set_error(tr_d[-5000:]))
     #predictions.write()
@@ -244,7 +244,7 @@ class Model(object):
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
 
-    def train(self):
+    def train(self,regressor=None):
         """
         Train the model from the training set.
 
@@ -263,15 +263,15 @@ class Model(object):
 
         start = time.time()
         for col_name in cols_to_predict:
-            r = SGDRegressor(loss = "squared_loss",
-                             n_iter =20,
-                             penalty = 'elasticnet',
-                             alpha = 0.0001,
-                             power_t = 0.2,
-                             shuffle = True,
-                             #random_state = 7
-                            )
-
+#            r = SGDRegressor(loss = "squared_loss",
+#                             n_iter =20,
+#                             penalty = 'elasticnet',
+#                             alpha = 0.0001,
+#                             power_t = 0.2,
+#                             shuffle = True,
+#                             #random_state = 7
+#                            )
+#
 #            r = linear_model.Ridge(alpha=0.0, 
 #                                   copy_X=True, 
 #                                   fit_intercept=True,
@@ -284,6 +284,10 @@ class Model(object):
                                                    learning_rate=0.1,
                                                    max_depth=3,
                                                    verbose=0)
+
+            if regressor != None: #Implementing some basic form of
+                #dependency injection
+                r = regressor
 
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 

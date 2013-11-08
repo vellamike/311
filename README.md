@@ -1,3 +1,5 @@
+This is the repository for our entry for the See Click Predict Fix Kaggle contest.
+
 # Various things we could try
 
 Warning: I've written many things down here, but most of them will turn out to be relatively unimportant! Let's be careful what we spend our time on. We don't need to do all these things...
@@ -18,15 +20,11 @@ Warning: I've written many things down here, but most of them will turn out to b
   some 2D histograms with numpy & matplotlib. Humans probably very good at this.
 * Use locatity data: http://sedac.ciesin.columbia.edu/data/set/usgrid-summary-file3-2000-msa
 * Position relative to centre of city
-* Use text
+* Use text - Natural language, bag of words vs something else.
 
 ## Base model
-* Code machine learning data rig. (Train on 90% of the data and test on the other 10%.)
-* Use SGD with more features. Get it to beat the small niche model.
-* Try GBM model.
-* Train machine learning on the final months of test data.
-* Play around with several different models.
-
-
-# Submission information
-Thu, 31 Oct 2013 22:52:37 - First submission using the Beast Encoder. SGD. alpha = 0.001. pt = 0.1. shuffle = True. Pairwise encoded features: tag, source, city, weekday, description flag.
+* Code machine learning data rig. (Train on 90% of the data and test on the other 10%.) - *DONE*
+* Use SGD with more features. Get it to beat the small niche model. *DONE*
+* Try GBM model. *DONE*
+* Train machine learning on the final months of test data. *DONE*
+* Play around with several different models. *DONE* (ish)

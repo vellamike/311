@@ -263,7 +263,7 @@ class Model(object):
 
         start = time.time()
         for col_name in cols_to_predict:
-#            r = SGDRegressor(loss = "squared_loss",
+
 #                             n_iter =20,
 #                             penalty = 'elasticnet',
 #                             alpha = 0.0001,
@@ -289,6 +289,9 @@ class Model(object):
                 #dependency injection
                 r = regressor
 
+            #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
+
+            
             r.fit(tr_features, tog(self.tr_d[col_name].values))
 
             self.regressors.append(r)

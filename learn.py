@@ -24,19 +24,30 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg(regressor=None):
+def test_prediction_alg(n_estimators=100):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[:-20000])
-    m.train(regressor=regressor)
+
+#    regressor = ensemble.GradientBoostingRegressor(n_estimators=100,
+#                                           learning_rate=0.1,
+#                                           max_depth=3,
+#                                           verbose=0)
+
+    m.train(n_estimators=n_estimators)
     predictions = m.predict(data = tr_d[-20000:])
-    print(predictions.training_set_error(tr_d[-20000:]))
+    
+    training_set_error = predictions.training_set_error(tr_d[-20000:])
+
+    print 'training set error:'
+    print training_set_error
+
     #predictions.write()
     e = tr_d[-20000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
-    return (m, predictions, e)
+    return (training_set_error,m, predictions, e)
 
 def identify_dupes(data_set = None):
     pass
@@ -244,7 +255,7 @@ class Model(object):
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
 
-    def train(self,regressor=None):
+    def train(self,n_estimators=100):
         """
         Train the model from the training set.
 
@@ -280,21 +291,26 @@ class Model(object):
 #                                   solver='auto', 
 #                                   tol=0.00001)
 
-            r = ensemble.GradientBoostingRegressor(n_estimators=100,
-                                                   learning_rate=0.1,
-                                                   max_depth=3,
-                                                   verbose=0)
+#            r = ensemble.GradientBoostingRegressor(n_estimators=100,
+#                                                   learning_rate=0.1,
+#                                                   max_depth=3,
+#                                                   verbose=0)
 
-            if regressor != None: #Implementing some basic form of
-                #dependency injection
-                r = regressor
+#            if regressor != None: #Dependency injection
+#                print "user-specified regressor located"
+#                r = regressor
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
+            regressor = ensemble.GradientBoostingRegressor(loss='huber',
+                                                           n_estimators=n_estimators,
+                                                           learning_rate=0.1,
+                                                           max_depth=3,
+                                                           verbose=0)
             
-            r.fit(tr_features, tog(self.tr_d[col_name].values))
+            regressor.fit(tr_features, tog(self.tr_d[col_name].values))
 
-            self.regressors.append(r)
+            self.regressors.append(regressor)
 
             print(time.time() - start)
 

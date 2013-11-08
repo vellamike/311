@@ -17,6 +17,7 @@ import math
 import time
 import io
 import datetime
+from sklearn import ensemble
 
 # our code
 import features
@@ -26,12 +27,12 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg():
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-10000])
+    m = Model(tr_d[:-5000])
     m.train()
-    predictions = m.predict(data = tr_d[-10000:])
-    print(predictions.training_set_error(tr_d[-10000:]))
+    predictions = m.predict(data = tr_d[-5000:])
+    print(predictions.training_set_error(tr_d[-5000:]))
     #predictions.write()
-    e = tr_d[-10000:]
+    e = tr_d[-5000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -173,7 +174,9 @@ class Model(object):
 
     def __make_features__(self, d):
         weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
-       
+        hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
+        day_sixth = lambda timestr : hour(timestr) // 3
+
         if self.km is None:
             (self.km, clusters) = features.neighbourhoods(d)
         else:
@@ -187,7 +190,8 @@ class Model(object):
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
             'description' : map(int, d.description > 0),
-            'city': features.city_feature(d) #clusters #10
+            'city': features.city_feature(d), #clusters #10
+            'day_sixth': map(day_sixth,d.created_time.values), # 4
         }
 
         for f in feature_dic:
@@ -205,7 +209,12 @@ class Model(object):
                      F('tag_type') * F('weekday') +\
                      F('source') * F('city') + \
                      F('source') * F('weekday') +\
-                     F('city') * F('weekday')
+                     F('city') * F('weekday') +\
+                     F('source') * F('day_sixth') +\
+                     F('tag_type') * F('day_sixth') +\
+                     F('city') * F('day_sixth') +\
+                     F('day_sixth') * F('weekday')
+
             be_city_focus = F('city') * (\
                                          F('weekday') +\
                                          F('description') +\
@@ -216,12 +225,15 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('weekday') + F('description')
-            self.beast_encoder = be_pw
+                        F('weekday') + F('description') +F('day_sixth')
+            
+            self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
+        
         print("int_features: "+str(int_features.shape))
+        
         if self.enc is None:
             self.enc = sklearn.preprocessing.OneHotEncoder(
                                             n_values = self.beast_encoder.shape
@@ -253,14 +265,27 @@ class Model(object):
         for col_name in cols_to_predict:
 
             r = SGDRegressor(loss = "squared_loss",
-                             n_iter = 5, #empirically I found 40 to be slightly more effective - MV
-                             penalty='l2', #empirically I found elasticnet to be slightly more effective - MV
-                             
+                             n_iter =20,
+                             penalty = 'elasticnet',
+                             alpha = 0.0001,
                              alpha = 0.0,
                              power_t = 0.2,
                              shuffle = True,
                              #random_state = 7
                             )
+
+#            r = linear_model.Ridge(alpha=0.0, 
+#                                   copy_X=True, 
+#                                   fit_intercept=True,
+#                                   max_iter=None,
+#                                   normalize=True, 
+#                                   solver='auto', 
+#                                   tol=0.00001)
+
+            r = ensemble.GradientBoostingRegressor(n_estimators=100,
+                                                   learning_rate=0.1,
+                                                   max_depth=3,
+                                                   verbose=0)
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 

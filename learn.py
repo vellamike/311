@@ -268,7 +268,6 @@ class Model(object):
                              n_iter =20,
                              penalty = 'elasticnet',
                              alpha = 0.0001,
-                             alpha = 0.0,
                              power_t = 0.2,
                              shuffle = True,
                              #random_state = 7

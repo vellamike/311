@@ -203,7 +203,9 @@ class Model(object):
             'description' : map(int, d.description > 0),
             'city': features.city_feature(d), #clusters #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
-            'dense_neighbourhood':features.dense_neighbourhood(d)
+            'naive_nlp': map(features.naive_nlp,d.summary.values)
+
+#            'dense_neighbourhood':features.dense_neighbourhood(d)
 #            'summary_length':map(features.string_length,d.summary), #huge number of features
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
         }
@@ -240,7 +242,9 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('weekday') + F('description') +F('day_sixth') +\
-                        F('dense_neighbourhood')
+                        F('naive_nlp')
+
+#                        F('dense_neighbourhood')
 
 #                        F('summary_bag_of_words')# +F('summary_length')
             

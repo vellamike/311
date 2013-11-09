@@ -18,6 +18,31 @@ def string_length(string):
         length = 0
     return length
         
+def naive_nlp(string,keywords = None):
+    """
+    Example:
+    >>> print naive_nlp('I often paint Pothole and Graffiti')
+    """
+    if keywords == None:
+        keywords = ['Pothole','Sanitation','Graffiti','Rodent','Trash','Light','Violation','Park',
+                    'Other','Pavement']
+
+#    print 'keywords'
+#    onehot = []
+    feature = 0
+    for i,keyword in enumerate(keywords):
+        if keyword in string:
+            feature = i + 1
+        
+    return feature
+
+
+#    decimal_encoding = sum(j<<i for i,j in enumerate(reversed(onehot)))
+#    print decimal_encoding
+#    return decimal_encoding
+
+
+
 def dense_neighbourhood(d):
     """
     Better check all these values...

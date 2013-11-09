@@ -34,7 +34,7 @@ def test_prediction_alg(n_estimators=100):
 #                                           max_depth=3,
 #                                           verbose=0)
 
-    m.train(n_estimators=n_estimators)
+    m.train()
     predictions = m.predict(data = tr_d[-20000:])
     
     training_set_error = predictions.training_set_error(tr_d[-20000:])
@@ -203,6 +203,9 @@ class Model(object):
             'description' : map(int, d.description > 0),
             'city': features.city_feature(d), #clusters #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
+            'dense_neighbourhood':features.dense_neighbourhood(d)
+#            'summary_length':map(features.string_length,d.summary), #huge number of features
+#            'summary_bag_of_words':features.summary_bag_of_words(d)
         }
 
         for f in feature_dic:
@@ -236,7 +239,10 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('weekday') + F('description') +F('day_sixth')
+                        F('weekday') + F('description') +F('day_sixth') +\
+                        F('dense_neighbourhood')
+
+#                        F('summary_bag_of_words')# +F('summary_length')
             
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -275,13 +281,13 @@ class Model(object):
         start = time.time()
         for col_name in cols_to_predict:
 
-#                             n_iter =20,
-#                             penalty = 'elasticnet',
-#                             alpha = 0.0001,
-#                             power_t = 0.2,
-#                             shuffle = True,
-#                             #random_state = 7
-#                            )
+#            regressor = linear_model.SGDRegressor(n_iter=10,
+#                                                penalty = 'elasticnet',
+#                                                alpha = 0.0001,
+#                                                power_t = 0.2,
+#                                                shuffle = True)
+#                                                #random_state = 7
+                                
 #
 #            r = linear_model.Ridge(alpha=0.0, 
 #                                   copy_X=True, 
@@ -302,8 +308,7 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(loss='huber',
-                                                           n_estimators=n_estimators,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=100,
                                                            learning_rate=0.1,
                                                            max_depth=3,
                                                            verbose=0)

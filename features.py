@@ -1,6 +1,7 @@
 ''' Makes and processes features. '''
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import CountVectorizer
 
 boundaries = [(37.4,37.7),
 (37.7,37.9),
@@ -8,6 +9,75 @@ boundaries = [(37.4,37.7),
 (41.3,41.4),
 (41.6,42.1)]
 
+
+def string_length(string):
+    try:
+        length = len(string)
+        if length > 100: length = 100 #hack
+    except:
+        length = 0
+    return length
+        
+def dense_neighbourhood(d):
+    """
+    Better check all these values...
+    """
+    extra_box_0 = ((37.56,37.59),(-77.6,-77.54))
+    extra_box_1 = ((37.52,37.57),(-77.54,-77.50))
+    extra_box_2 = ((37.56,37.59),(-77.50,-77.45))
+    extra_box_3 = ((37.57,37.59),(-77.54,-77.51))
+    
+    extra_box_4= ((37.74,37.80),(-122.3,-122.2))
+    
+    extra_box_5= ((41.25,41.27),(-72.95,-72.92))
+    extra_box_6= ((41.28,41.3),(-72.95,-72.92))
+    extra_box_7= ((41.28,41.3),(-72.92,-72.89))
+    
+    extra_box_8= ((41.32,41.34),(-72.93,-72.90))
+    extra_box_9= ((41.31,41.34),(-72.90,-72.87))
+
+    extra_boxes=[extra_box_0,
+                 extra_box_1,
+                 extra_box_2,
+                 extra_box_3,
+                 extra_box_4,
+                 extra_box_6,
+                 extra_box_7,
+                 extra_box_8,
+                 extra_box_9,]
+    
+    latitudes = d.latitude.values
+    longitudes = d.longitude.values
+
+    dense_places = []
+    for lat,lon in zip(latitudes,longitudes):
+        point = (lat,lon)
+        dense_places.append(which_box(extra_boxes,point))
+    #print dense_places
+    return dense_places
+
+def in_box(box,point):
+    lat_extent = box[0]
+    lon_extent = box[1]
+    
+    in_extent = lambda g,extent : extent[0] < g < extent[1]
+    inside_box = lambda box,point : in_extent(point[0],box[0]) and in_extent(point[1],box[1])
+        
+    return inside_box(box,point)
+
+def which_box(boxes,point):
+    i = len(boxes) + 1
+    for box_num,box in enumerate(boxes):
+        if in_box(box,point):
+            i = box_num
+    
+    return i
+
+def summary_bag_of_words(training_data):
+    vectorizer = CountVectorizer(min_df=1)
+    corpus = training_data.summary
+    X = vectorizer.fit_transform(corpus)
+    return X.to_array()
 
 def neighbourhoods(d):
     km = KMeans(n_clusters = 4, n_jobs = -1, n_init = 20, random_state = 7)

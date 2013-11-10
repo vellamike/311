@@ -24,7 +24,7 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg(n_estimators=100):
+def test_prediction_alg(n_estimators=60):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[:-20000])
@@ -58,7 +58,14 @@ def make_predictions2():
     m = Model(tr_d)
     m.train()
     predictions = m.predict(data = te_d)
-    assert(np.max(predictions.comment_p)<5)
+
+#    #horrible hack:
+#    for i,comment in enumerate(predictions.comment_p):
+#        if comment>5:
+#            predictions.comment_p[i] = 0
+
+    # probable truncation error if this violated:
+    assert(np.max(predictions.comment_p)<5) 
     predictions.correct_means()
     assert(np.max(predictions.comment_p)<5)
     predictions.vote_p = np.maximum(predictions.vote_p, 1)
@@ -184,7 +191,7 @@ class Model(object):
         #self.te_d = chicago_fix(self.te_d)
 
     def __make_features__(self, d):
-        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
+        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday() > 4
         hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
         day_sixth = lambda timestr : hour(timestr) // 3
 
@@ -244,6 +251,11 @@ class Model(object):
                         F('weekday') + F('description') +F('day_sixth') +\
                         F('naive_nlp')
 
+            be_linear = F('city') + F('source') + F('day_sixth') + F('tag_type')# +F('weekday') #+F('naive_nlp')
+
+#            be_linear = F('city')
+
+
 #                        F('dense_neighbourhood')
 
 #                        F('summary_bag_of_words')# +F('summary_length')
@@ -291,9 +303,9 @@ class Model(object):
 #                                                power_t = 0.2,
 #                                                shuffle = True)
 #                                                #random_state = 7
-                                
-#
-#            r = linear_model.Ridge(alpha=0.0, 
+                               
+
+#            regressor = linear_model.Ridge(alpha=0.0, 
 #                                   copy_X=True, 
 #                                   fit_intercept=True,
 #                                   max_iter=None,
@@ -312,7 +324,7 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=100,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=60, #best performing regressor as of 10 nov
                                                            learning_rate=0.1,
                                                            max_depth=3,
                                                            verbose=0)

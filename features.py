@@ -24,13 +24,30 @@ def naive_nlp(string,keywords = None):
     >>> print naive_nlp('I often paint Pothole and Graffiti')
     """
     if keywords == None:
-        keywords = ['Pothole','Sanitation','Graffiti','Rodent','Trash','Light','Violation','Park',
-                    'Other','Pavement']
+        keywords = ['Pothole',
+                    'Sanitation',
+                    'Graffiti',
+                    'Rodent',
+                    'Trash',
+                    'Light',
+                    'Violation',
+                    'Park',
+                    'Other',
+                    'Pavement'
+                    'Theft',
+                    'Snow',
+                    'Plow',
+                    'Huge',
+                    'Drug',
+                    'Illegal',
+                    'Hydrant',
+                    'drug',
+                    ]
 
 #    print 'keywords'
 #    onehot = []
     feature = 0
-    for i,keyword in enumerate(keywords):
+    for i,keyword in enumerate(keywords): #make this lowercase and add s
         if keyword in string:
             feature = i + 1
         

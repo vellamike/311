@@ -10,13 +10,14 @@ boundaries = [(37.4,37.7),
 (41.6,42.1)]
 
 
-def string_length(string):
+def string_length(string,bucket=10):
     try:
         length = len(string)
-        if length > 100: length = 100 #hack
+        if length > 200:
+            length = 200
     except:
         length = 0
-    return length
+    return length // bucket
         
 def naive_nlp(string,keywords = None):
     """

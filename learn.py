@@ -11,6 +11,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn import linear_model
 from sklearn.linear_model import SGDRegressor 
 import sklearn.preprocessing
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
 
 import pdb
 import math
@@ -34,7 +36,7 @@ def test_prediction_alg(n_estimators=60):
 #                                           max_depth=3,
 #                                           verbose=0)
 
-    m.train()
+    m.train(n_estimators=n_estimators)
     predictions = m.predict(data = tr_d[-5000:])
     
     training_set_error = predictions.training_set_error(tr_d[-5000:])
@@ -212,12 +214,14 @@ class Model(object):
             'day_sixth': map(day_sixth,d.created_time.values), # 4
             'naive_nlp': map(features.naive_nlp,d.summary.values),
             'summary_length':map(features.string_length,d.summary),
+            'description_length':map(features.string_length,d.description),            
             #            #huge number of features
 
-            'dense_neighbourhood':features.dense_neighbourhood(d)
-
-#            'summary_bag_of_words':features.summary_bag_of_words(d)
+            'dense_neighbourhood':features.dense_neighbourhood(d),
+            'angry_post':(map(features.angry_post,d.summary.values))
         }
+#            'summary_bag_of_words':features.summary_bag_of_words(d)
+
 
         for f in feature_dic:
             pass
@@ -251,7 +255,8 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('day_sixth') +F('naive_nlp')  +F('summary_length')
+                        F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
+                        F('description_length') + F('angry_post')
 
             #little if any effect: +F('dense_neighbourhood') +F('description') +F('weekday')
             
@@ -319,8 +324,8 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=100, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
-                                                           max_depth=3,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=n_estimators, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
+                                                           max_depth=6,
                                                            verbose=0)
             
             regressor.fit(tr_features, tog(self.tr_d[col_name].values))

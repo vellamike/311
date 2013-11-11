@@ -19,6 +19,16 @@ def string_length(string,bucket=10):
         length = 0
     return length // bucket
         
+
+def angry_post(string):
+    words = string.split()
+    is_angry = False
+    for word in words:
+        if word.isupper():
+            print 'ANGRY POST DETECTED'
+            is_angry = True
+    return int(is_angry)
+
 def naive_nlp(string,keywords = None):
     """
     Example:
@@ -43,6 +53,11 @@ def naive_nlp(string,keywords = None):
                     'Illegal',
                     'Hydrant',
                     'drug',
+                    'Abandoned',
+                    '!',
+                    '?',
+                    '/',
+
                     ]
 
 #    print 'keywords'
@@ -53,7 +68,6 @@ def naive_nlp(string,keywords = None):
             feature = i + 1
         
     return feature
-
 
 #    decimal_encoding = sum(j<<i for i,j in enumerate(reversed(onehot)))
 #    print decimal_encoding

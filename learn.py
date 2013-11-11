@@ -66,7 +66,7 @@ def make_predictions2():
 #        if comment>5:
 #            predictions.comment_p[i] = 0
 
-    # probable truncation error if this violated:
+    # probable error if this violated:
     assert(np.max(predictions.comment_p)<5) 
     predictions.correct_means()
     assert(np.max(predictions.comment_p)<5)
@@ -256,7 +256,7 @@ class Model(object):
 
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('description_length') + F('angry_post')
+                        F('angry_post') + F('description_length') 
 
             #little if any effect: +F('dense_neighbourhood') +F('description') +F('weekday')
             
@@ -324,7 +324,7 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=n_estimators, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=30, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
                                                            max_depth=6,
                                                            verbose=0)
             

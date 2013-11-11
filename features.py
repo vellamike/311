@@ -25,7 +25,6 @@ def angry_post(string):
     is_angry = False
     for word in words:
         if word.isupper():
-            print 'ANGRY POST DETECTED'
             is_angry = True
     return int(is_angry)
 

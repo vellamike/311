@@ -324,7 +324,7 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=30, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=40, #best performing regressor as of 10 nov                                                           learning_rate=0.1,
                                                            max_depth=6,
                                                            verbose=0)
             

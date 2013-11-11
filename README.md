@@ -1,5 +1,21 @@
 This is the repository for our entry for the See Click Predict Fix Kaggle contest.
 
+# Observations
+
+These observations are from 11 Nov submission (Score 0.30339, pos #8)
+
+- With gradient boosters increasing the number of estimators can be counter-productive
+- CV can be misleading
+
+
+# Priority things to try
+- Data preformatting: this has to be critical, what can we do?
+- Mean probes - when MV tested them the result was score worsening - did MV make a mistake?
+- NLP - extremely naive implementation right now, how can it be improved?
+
+# Lower priority, nice to have:
+- Parallelize algos for quick evaluation
+
 # Various things we could try
 
 Warning: I've written many things down here, but most of them will turn out to be relatively unimportant! Let's be careful what we spend our time on. We don't need to do all these things...

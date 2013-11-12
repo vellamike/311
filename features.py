@@ -34,7 +34,13 @@ def naive_nlp(string,keywords = None):
     >>> print naive_nlp('I often paint Pothole and Graffiti')
     """
     if keywords == None:
-        keywords = ['Pothole',
+        keywords = ['Tree',
+                    'Rat',
+                    'Baiting',
+                    'Traffic',
+                    'Restaurant',
+                    'Building',
+                    'Pothole',
                     'Sanitation',
                     'Graffiti',
                     'Rodent',

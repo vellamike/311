@@ -9,12 +9,14 @@ These observations are from 11 Nov submission (Score 0.30339, pos #8)
 
 
 # Priority things to try
+- Separate training for remote_api_created, perhaps even separate training sets
 - Data preformatting: this has to be critical, what can we do?
 - Mean probes - when MV tested them the result was score worsening - did MV make a mistake?
 - NLP - extremely naive implementation right now, how can it be improved?
 
 # Lower priority, nice to have:
 - Parallelize algos for quick evaluation
+- With GBM, going from 40 to 30 estimators caused a very slight improvement, would 30 to 20 cause a more significant improvement? Wheere on the estimators/score curve is the right place?
 
 # Various things we could try
 

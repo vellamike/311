@@ -256,9 +256,9 @@ class Model(object):
 
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length') 
+                        F('angry_post') + F('description_length')# +F('description')
 
-            #little if any effect: +F('dense_neighbourhood') +F('description') +F('weekday')
+            #little if any effect: +F('dense_neighbourhood')  +F('weekday')
             
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -324,7 +324,8 @@ class Model(object):
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=30, #best performing regressor as of 10 nov                                         
+            regressor = ensemble.GradientBoostingRegressor(loss='ls',
+                                                           n_estimators=n_estimators, #best performing regressor as of 10 nov                                         
                                                            learning_rate=0.1,
                                                            max_depth=6,
                                                            verbose=0)

@@ -29,23 +29,18 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg(n_estimators=60):
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-5000])
-
-#    regressor = ensemble.GradientBoostingRegressor(n_estimators=100,
-#                                           learning_rate=0.1,
-#                                           max_depth=3,
-#                                           verbose=0)
+    m = Model(tr_d[:-10000])
 
     m.train(n_estimators=n_estimators)
-    predictions = m.predict(data = tr_d[-5000:])
+    predictions = m.predict(data = tr_d[-10000:])
     
-    training_set_error = predictions.training_set_error(tr_d[-5000:])
+    training_set_error = predictions.training_set_error(tr_d[-10000:])
 
     print 'training set error:'
     print training_set_error
 
     #predictions.write()
-    e = tr_d[-5000:]
+    e = tr_d[-10000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -78,6 +73,7 @@ def make_predictions2():
 def load_data(training_set,after_row = 160000):
     ''' Loads training or test data. '''
     if training_set:
+#        d = pandas.read_csv("data/train.csv")
         d = pandas.read_csv("data/train.csv")
         return d[after_row:]
     else:
@@ -213,12 +209,14 @@ class Model(object):
             'city': features.city_feature(d), #clusters #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
             'naive_nlp': map(features.naive_nlp,d.summary.values),
+            'naive_nlp_description': map(features.naive_nlp,d.description.values),
             'summary_length':map(features.string_length,d.summary),
             'description_length':map(features.string_length,d.description),            
             #            #huge number of features
 
             'dense_neighbourhood':features.dense_neighbourhood(d),
-            'angry_post':(map(features.angry_post,d.summary.values))
+            'angry_post':(map(features.angry_post,d.summary.values)),
+            'angry_description':(map(features.angry_post,d.description.values))
         }
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
 
@@ -256,10 +254,11 @@ class Model(object):
 
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length')# +F('description')
+                        F('angry_post') + F('description_length') +F('angry_description') +F('naive_nlp_description')
 
-            #little if any effect: +F('dense_neighbourhood')  +F('weekday')
-            
+            #little if any effect: +F('dense_neighbourhood')
+            #+F('weekday') +F('angry_description')# +F('description')
+            # +F('weekday')  +F('description') +F('dense_neighbourhood')            
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
 
@@ -323,9 +322,10 @@ class Model(object):
 #                r = regressor
 
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
+            #best performing regressor as of 10 nov
 
             regressor = ensemble.GradientBoostingRegressor(loss='ls',
-                                                           n_estimators=n_estimators, #best performing regressor as of 10 nov                                         
+                                                           n_estimators=30,
                                                            learning_rate=0.1,
                                                            max_depth=6,
                                                            verbose=0)

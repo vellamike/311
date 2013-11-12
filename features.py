@@ -1,6 +1,7 @@
 ''' Makes and processes features. '''
 import numpy as np
 from sklearn.cluster import KMeans
+import time
 from sklearn.feature_extraction.text import CountVectorizer
 
 boundaries = [(37.4,37.7),
@@ -21,10 +22,13 @@ def string_length(string,bucket=10):
         
 
 def angry_post(string):
-    words = string.split()
+    try:
+        words = string.split()
+    except:
+        words = []
     is_angry = False
     for word in words:
-        if word.isupper():
+        if word.isupper() and len(word) > 1:
             is_angry = True
     return int(is_angry)
 
@@ -34,7 +38,9 @@ def naive_nlp(string,keywords = None):
     >>> print naive_nlp('I often paint Pothole and Graffiti')
     """
     if keywords == None:
-        keywords = ['Tree',
+        keywords = ['Street Lights All / Out',
+                    'Homeless',
+                    'Tree',
                     'Rat',
                     'Baiting',
                     'Traffic',
@@ -55,6 +61,7 @@ def naive_nlp(string,keywords = None):
                     'Plow',
                     'Huge',
                     'Drug',
+                    'Illegal Dumping',
                     'Illegal',
                     'Hydrant',
                     'drug',
@@ -68,10 +75,12 @@ def naive_nlp(string,keywords = None):
 #    print 'keywords'
 #    onehot = []
     feature = 0
-    for i,keyword in enumerate(keywords): #make this lowercase and add s
-        if keyword in string:
-            feature = i + 1
-        
+    try:
+        for i,keyword in enumerate(keywords): #make this lowercase and add s
+            if keyword in string:
+                feature = i + 1
+    except:
+        feature = 0
     return feature
 
 #    decimal_encoding = sum(j<<i for i,j in enumerate(reversed(onehot)))

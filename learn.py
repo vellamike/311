@@ -219,8 +219,9 @@ class Model(object):
             'angry_description':(map(features.angry_post,d.description.values)),
 
             'summary' : features.feature_to_int(d.summary,  #9 
-                                               category_dict =\
-                                               self.summary_d),
+                                                category_dict =\
+                                                self.summary_d,
+                                                thresh=5),
 
 
         }

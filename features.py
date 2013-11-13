@@ -197,12 +197,12 @@ def make_category_dict(feature):
     return category_dict
 
 
-def feature_to_int(feature, category_dict = None):
+def feature_to_int(feature, category_dict = None,thresh = 0):
     if category_dict is None:
         category_dict = make_category_dict(feature)
     int_feature = []
     for s in feature:
-        if s in category_dict:
+        if s in category_dict and (feature == s).sum() > thresh:
             int_feature.append(category_dict[s])
         else:
             print(s)

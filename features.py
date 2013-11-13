@@ -198,11 +198,19 @@ def make_category_dict(feature):
 
 
 def feature_to_int(feature, category_dict = None,thresh = 0):
+
+    frequencies = {}
+    for s in feature:
+        if s not in frequencies:
+            frequencies[s] = (feature == s).sum()
+
     if category_dict is None:
         category_dict = make_category_dict(feature)
     int_feature = []
+
     for s in feature:
-        if s in category_dict and (feature == s).sum() > thresh:
+        if s in category_dict and frequencies[s] > thresh:
+            print s
             int_feature.append(category_dict[s])
         else:
             print(s)

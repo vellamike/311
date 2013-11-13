@@ -5,12 +5,18 @@ import time
 from sklearn.feature_extraction.text import CountVectorizer
 
 boundaries = [(37.4,37.7),
-(37.7,37.9),
-(41.24,41.3),
-(41.3,41.4),
-(41.6,42.1)]
+              (37.7,37.9),
+              (41.24,41.3),
+              (41.3,41.4),
+              (41.6,42.1)]
 
 
+#boundaries = [(37.4,37.7),
+#              (37.7,37.9),
+#              (41.24,41.4),#back to 4 cities - experiment
+#              #(41.3,41.4),
+#              (41.6,42.1)]
+#
 def string_length(string,bucket=10):
     try:
         length = len(string)
@@ -38,9 +44,12 @@ def naive_nlp(string,keywords = None):
     >>> print naive_nlp('I often paint Pothole and Graffiti')
     """
     if keywords == None:
-        keywords = ['Street Lights All / Out',
+        keywords = ['Survey',
+                    'Street Lights All / Out',
                     'Homeless',
                     'Tree',
+                    'Street',
+                    'Streets',
                     'Rat',
                     'Baiting',
                     'Traffic',
@@ -50,6 +59,8 @@ def naive_nlp(string,keywords = None):
                     'Sanitation',
                     'Graffiti',
                     'Rodent',
+                    'Completed',
+                    'Complete',
                     'Trash',
                     'Light',
                     'Violation',
@@ -59,6 +70,7 @@ def naive_nlp(string,keywords = None):
                     'Theft',
                     'Snow',
                     'Plow',
+                    'huge',
                     'Huge',
                     'Drug',
                     'Illegal Dumping',
@@ -66,6 +78,10 @@ def naive_nlp(string,keywords = None):
                     'Hydrant',
                     'drug',
                     'Abandoned',
+                    'Sidewalk',
+                    'sidewalk',
+                    'Sidewalks',
+                    'sidewalks',
                     '!',
                     '?',
                     '/',

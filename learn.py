@@ -29,18 +29,18 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg(n_estimators=60):
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-10000])
+    m = Model(tr_d[:-1000])
 
     m.train(n_estimators=n_estimators)
-    predictions = m.predict(data = tr_d[-10000:])
+    predictions = m.predict(data = tr_d[-1000:])
     
-    training_set_error = predictions.training_set_error(tr_d[-10000:])
+    training_set_error = predictions.training_set_error(tr_d[-1000:])
 
     print 'training set error:'
     print training_set_error
 
     #predictions.write()
-    e = tr_d[-10000:]
+    e = tr_d[-1000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -216,7 +216,13 @@ class Model(object):
 
             'dense_neighbourhood':features.dense_neighbourhood(d),
             'angry_post':(map(features.angry_post,d.summary.values)),
-            'angry_description':(map(features.angry_post,d.description.values))
+            'angry_description':(map(features.angry_post,d.description.values)),
+
+            'summary' : features.feature_to_int(d.summary,  #9 
+                                               category_dict =\
+                                               self.summary_d),
+
+
         }
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
 
@@ -252,9 +258,10 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
-            be_linear = F('tag_type') + F('source') + F('city') +\
+            be_linear = F('tag_type') + F('source') + F('city') + F('description') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length') +F('angry_description') +F('naive_nlp_description')
+                        F('angry_post') + F('description_length') +F('angry_description') +\
+                        F('naive_nlp_description') +F('summary')
 
             #little if any effect: +F('dense_neighbourhood')
             #+F('weekday') +F('angry_description')# +F('description')
@@ -285,6 +292,7 @@ class Model(object):
 
         #this stage is confusing, s_d needs to work for
         #__make_features__ to work properly
+        self.summary_d = features.make_category_dict(self.tr_d.summary.values)
         self.s_d = features.make_category_dict(self.tr_d.source.values)
         self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
 
@@ -302,7 +310,7 @@ class Model(object):
 #                                                power_t = 0.2,
 #                                                shuffle = True)
 #                                                #random_state = 7
-                               
+#                               
 
 #            regressor = linear_model.Ridge(alpha=0.0, 
 #                                   copy_X=True, 
@@ -312,11 +320,11 @@ class Model(object):
 #                                   solver='auto', 
 #                                   tol=0.00001)
 
-#            r = ensemble.GradientBoostingRegressor(n_estimators=100,
-#                                                   learning_rate=0.1,
-#                                                   max_depth=3,
-#                                                   verbose=0)
-
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=30,
+                                                   learning_rate=0.1,
+                                                   max_depth=6,
+                                                   verbose=0)
+#
 #            if regressor != None: #Dependency injection
 #                print "user-specified regressor located"
 #                r = regressor
@@ -324,11 +332,12 @@ class Model(object):
             #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
             #best performing regressor as of 10 nov
 
-            regressor = ensemble.GradientBoostingRegressor(loss='ls',
-                                                           n_estimators=30,
-                                                           learning_rate=0.1,
-                                                           max_depth=6,
-                                                           verbose=0)
+            #gives weird results:
+#            regressor = ensemble.RandomForestRegressor(n_estimators=5,
+#                                                       #learning_rate=0.1,
+#                                                       max_depth=None,
+#                                                       n_jobs=-1,
+#                                                       oob_score=True)
             
             regressor.fit(tr_features, tog(self.tr_d[col_name].values))
 

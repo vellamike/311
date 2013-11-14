@@ -29,18 +29,18 @@ cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 def test_prediction_alg(n_estimators=60):
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-1000])
+    m = Model(tr_d[:-10000])
 
     m.train(n_estimators=n_estimators)
-    predictions = m.predict(data = tr_d[-1000:])
+    predictions = m.predict(data = tr_d[-10000:])
     
-    training_set_error = predictions.training_set_error(tr_d[-1000:])
+    training_set_error = predictions.training_set_error(tr_d[-10000:])
 
     print 'training set error:'
     print training_set_error
 
     #predictions.write()
-    e = tr_d[-1000:]
+    e = tr_d[-10000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
@@ -49,11 +49,11 @@ def test_prediction_alg(n_estimators=60):
 def identify_dupes(data_set = None):
     pass
 
-def make_predictions2():
+def make_predictions2(n_estimators=30):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d)
-    m.train()
+    m.train(n_estimators=n_estimators)
     predictions = m.predict(data = te_d)
 
 #    #horrible hack:
@@ -198,13 +198,40 @@ class Model(object):
         else:
             clusters = self.km.predict(d[['latitude','longitude']])
         
+        #Three loops below need to be a fn:
+        #build a dict of summary frequencies
+        summary_freq_dict = {}
+        for s in d.summary:
+            if s not in summary_freq_dict:
+                summary_freq_dict[s] = (d.summary == s).sum()
+
+        #build a dict of tag frequencies
+        tag_freq_dict = {}
+        for s in d.tag_type:
+            if s not in tag_freq_dict:
+                tag_freq_dict[s] = (d.tag_type == s).sum()
+
+        #build a dict of tag frequencies
+        source_freq_dict = {}
+        for s in d.source:
+            if s not in source_freq_dict:
+                source_freq_dict[s] = (d.source == s).sum()
+
+
+
         feature_dic = {
             'weekday': map(weekday,d.created_time.values), # 7
+
             'source' : features.feature_to_int(d.source.values, # 9 
                                                category_dict =\
                                                self.s_d),
+
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = self.t_d),
+
+            'summary' : features.feature_to_int(d.summary.values,  #9 
+                                                category_dict = self.summary_d,),
+
             'description' : map(int, d.description > 0),
             'city': features.city_feature(d), #clusters #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
@@ -218,10 +245,6 @@ class Model(object):
             'angry_post':(map(features.angry_post,d.summary.values)),
             'angry_description':(map(features.angry_post,d.description.values)),
 
-            'summary' : features.feature_to_int(d.summary,  #9 
-                                                category_dict =\
-                                                self.summary_d,
-                                                thresh=5),
 
 
         }
@@ -262,7 +285,7 @@ class Model(object):
             be_linear = F('tag_type') + F('source') + F('city') + F('description') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
                         F('angry_post') + F('description_length') +F('angry_description') +\
-                        F('naive_nlp_description') +F('summary')
+                        F('naive_nlp_description')# +F('summary')
 
             #little if any effect: +F('dense_neighbourhood')
             #+F('weekday') +F('angry_description')# +F('description')
@@ -293,7 +316,8 @@ class Model(object):
 
         #this stage is confusing, s_d needs to work for
         #__make_features__ to work properly
-        self.summary_d = features.make_category_dict(self.tr_d.summary.values)
+        self.summary_d = features.make_category_dict(self.tr_d.summary.values,threshold=10)
+
         self.s_d = features.make_category_dict(self.tr_d.source.values)
         self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
 
@@ -321,9 +345,9 @@ class Model(object):
 #                                   solver='auto', 
 #                                   tol=0.00001)
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=30,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=n_estimators,
                                                    learning_rate=0.1,
-                                                   max_depth=6,
+                                                   max_depth=8,
                                                    verbose=0)
 #
 #            if regressor != None: #Dependency injection

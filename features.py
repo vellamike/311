@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 import time
 from sklearn.feature_extraction.text import CountVectorizer
+import datetime
+import calendar
 
 boundaries = [(37.4,37.7),
               (37.7,37.9),
@@ -26,6 +28,13 @@ def string_length(string,bucket=10):
         length = 0
     return length // bucket
         
+def issue_age(timestr):
+    dt = datetime.datetime.strptime(timestr, "%Y-%m-%d %H:%M:%S")
+    time = calendar.timegm(dt.utctimetuple())
+    final = datetime.datetime.strptime("2013-04-30 23:51:37", "%Y-%m-%d %H:%M:%S")
+    finaltime = calendar.timegm(final.utctimetuple())
+    # the choice of final time is rather arbitrary.
+    return finaltime - time
 
 def angry_post(string):
     try:

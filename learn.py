@@ -26,7 +26,7 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg(n_estimators=60):
+def test_prediction_alg(n_estimators=30):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d[:-10000])
@@ -39,11 +39,6 @@ def test_prediction_alg(n_estimators=60):
     print 'training set error:'
     print training_set_error
 
-    #predictions.write()
-    e = tr_d[-10000:]
-    e['vote_p'] = predictions.vote_p
-    e['view_p'] = predictions.view_p
-    e['comment_p'] = predictions.comment_p
     return (training_set_error,m, predictions, e)
 
 def identify_dupes(data_set = None):
@@ -55,26 +50,15 @@ def make_predictions2(n_estimators=30):
     m = Model(tr_d)
     m.train(n_estimators=n_estimators)
     predictions = m.predict(data = te_d)
-
-#    #horrible hack:
-#    for i,comment in enumerate(predictions.comment_p):
-#        if comment>5:
-#            predictions.comment_p[i] = 0
-
-    # probable error if this violated:
-    assert(np.max(predictions.comment_p)<5) 
     predictions.correct_means()
-    assert(np.max(predictions.comment_p)<5)
     predictions.vote_p = np.maximum(predictions.vote_p, 1)
     predictions.write(te_d)
     return (m, predictions)
 
-#TODO - This fn is confusing IMO,
 def load_data(training_set,after_row = 160000):
     ''' Loads training or test data. '''
     if training_set:
         d = pandas.read_csv("data/train.csv")
-#        d = pandas.read_csv("data/train_city_fixed.csv")
         return d[after_row:]
     else:
         return pandas.read_csv("data/test.csv")
@@ -193,10 +177,10 @@ class Model(object):
         hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
         day_sixth = lambda timestr : hour(timestr) // 3
 
-        if self.km is None:
-            (self.km, clusters) = features.neighbourhoods(d)
-        else:
-            clusters = self.km.predict(d[['latitude','longitude']])
+        #if self.km is None:
+        #    (self.km, clusters) = features.neighbourhoods(d)
+        #else:
+        #    clusters = self.km.predict(d[['latitude','longitude']])
         
         #Three loops below need to be a fn:
         #build a dict of summary frequencies
@@ -233,7 +217,7 @@ class Model(object):
                                                 category_dict = self.summary_d,),
 
             'description' : map(int, d.description > 0),
-            'city': features.city_feature(d), #clusters #10
+            'city': features.city_feature(d), #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
             'naive_nlp': map(features.naive_nlp,d.summary.values),
             'naive_nlp_description': map(features.naive_nlp,d.description.values),
@@ -250,43 +234,19 @@ class Model(object):
         }
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
 
-
-        for f in feature_dic:
-            pass
-            #print(f)
-            #print(set(feature_dic[f]))
-
         for a in feature_dic.values():
             if not (len(a) == len(d.id.values)):
                 pdb.set_trace()
         
         if self.beast_encoder is None:
-            be_pw = F('tag_type') * F('source') + \
-                     F('tag_type') * F('city') +\
-                     F('tag_type') * F('weekday') +\
-                     F('source') * F('city') + \
-                     F('source') * F('weekday') +\
-                     F('city') * F('weekday') +\
-                     F('source') * F('day_sixth') +\
-                     F('tag_type') * F('day_sixth') +\
-                     F('city') * F('day_sixth') +\
-                     F('day_sixth') * F('weekday')
-
-            be_city_focus = F('city') * (\
-                                         F('weekday') +\
-                                         F('description') +\
-                                         F('source') * F('tag_type') + \
-                                         F('source') * F('description') \
-                                         + F('tag_type') * F('description')\
-                                         )
-
-            be_small_niche = (F('tag_type') * F('source') * F('city'))
-
-            be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length')
-
-            self.beast_encoder = be_linear
+            self.beast_encoder = F('tag_type') +\
+                                 F('source') +\
+                                 F('city') +\
+                                 F('day_sixth') +\
+                                 F('naive_nlp') +\
+                                 F('summary_length') +\
+                                 F('angry_post') +\
+                                 F('description_length')
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
@@ -303,11 +263,10 @@ class Model(object):
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
 
-    def train(self,n_estimators=65):
+    def train(self,n_estimators=30):
         """
         Train the model from the training set.
-
-        Currently using SGDRegressor
+        Currently using GBM 
         """
 
         #this stage is confusing, s_d needs to work for
@@ -341,7 +300,7 @@ class Model(object):
 #                                   solver='auto', 
 #                                   tol=0.00001)
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=n_estimators,
                                                    learning_rate=0.1,
                                                    max_depth=6,
                                                    verbose=0)

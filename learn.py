@@ -73,8 +73,8 @@ def make_predictions2(n_estimators=30):
 def load_data(training_set,after_row = 160000):
     ''' Loads training or test data. '''
     if training_set:
-#        d = pandas.read_csv("data/train.csv")
         d = pandas.read_csv("data/train.csv")
+#        d = pandas.read_csv("data/train_city_fixed.csv")
         return d[after_row:]
     else:
         return pandas.read_csv("data/test.csv")
@@ -282,14 +282,10 @@ class Model(object):
 
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
-            be_linear = F('tag_type') + F('source') + F('city') + F('description') +\
+            be_linear = F('tag_type') + F('source') + F('city') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length') +F('angry_description') +\
-                        F('naive_nlp_description')# +F('summary')
+                        F('angry_post') + F('description_length')
 
-            #little if any effect: +F('dense_neighbourhood')
-            #+F('weekday') +F('angry_description')# +F('description')
-            # +F('weekday')  +F('description') +F('dense_neighbourhood')            
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
 
@@ -345,9 +341,9 @@ class Model(object):
 #                                   solver='auto', 
 #                                   tol=0.00001)
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=n_estimators,
+            regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
                                                    learning_rate=0.1,
-                                                   max_depth=8,
+                                                   max_depth=6,
                                                    verbose=0)
 #
 #            if regressor != None: #Dependency injection

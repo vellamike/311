@@ -3,6 +3,7 @@ In order of subjective importance (i.e. expected score improvement / implementat
 
 1. BD: NLP - extremely naive implementation right now, how can it be improved?
 1. MV: Train a random forest regressor on the data. See how it compares to GBM. If it performs well, try submitting a blend of this with GBM. 
+1. BD: See whether special considerations for Chicago improve the score.
 1. MV: Look for duplicates in test data. How common are they? The city often marks duplicates as closed. Doing this removes the option to vote. Can we use this?
 1. BD,MV: _Why do the mean corrections in time not improve the score?_
 1. MV: Separate hyperparameter scans for each of {c,v,v}.
@@ -18,7 +19,7 @@ In order of subjective importance (i.e. expected score improvement / implementat
 
 ## Useful Background
 1. Read http://eaves.ca/2013/09/11/announcing-the-311-data-challenge-soon-to-be-launched-on-kaggle/ and in particular the link to the 311 standard api: http://open311.org/ . This should really help our intuition of what's going on.
-
+1. Visualization of tag types in different cities: https://www.kaggle.com/c/the-seeclickfix-311-challenge/visualization/1299
 ## Observations
 
 ### 11 Nov submission (Score 0.30339, pos #8)

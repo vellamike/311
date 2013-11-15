@@ -41,8 +41,4 @@ Warning: I've written many things down here, but most of them will turn out to b
 * Use text - Natural language, bag of words vs something else.
 
 ## Base model
-* Code machine learning data rig. (Train on 90% of the data and test on the other 10%.) - *DONE*
-* Use SGD with more features. Get it to beat the small niche model. *DONE*
-* Try GBM model. *DONE*
-* Train machine learning on the final months of test data. *DONE*
-* Play around with several different models. *DONE* (ish)
+* Train a random forest regressor on the data. See how it compares to GBM. If it performs well, try submitting a blend of this with GBM. 

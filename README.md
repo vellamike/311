@@ -6,7 +6,7 @@ In order of subjective importance (i.e. expected score improvement / implementat
 1. BD: See whether special considerations for Chicago improve the score.
 1. MV: Look for duplicates in test data. How common are they? The city often marks duplicates as closed. Doing this removes the option to vote. Can we use this?
 1. BD,MV: _Why do the mean corrections in time not improve the score?_
-1. MV: Separate hyperparameter scans for each of {c,v,v}.
+1. MV: Separate hyperparameter scans for each of {c,v,v}. More generally, think about using a different model for each of {c,v,v}.
 1. BD: New feature: Submission time. Scalar feature. Should capture some of the shift in the distribution over time.
 1. MV: Separate training for remote\_api\_created, perhaps even separate training sets
 1. MV: Data preformatting: this has to be critical, what can we do?

@@ -13,6 +13,7 @@ from sklearn.linear_model import SGDRegressor
 import sklearn.preprocessing
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.tree import DecisionTreeRegressor
+from multiprocessing import Pool
 
 import pdb
 import math
@@ -284,7 +285,9 @@ class Model(object):
 
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
-                        F('angry_post') + F('description_length')
+                        F('angry_post') + F('description_length') +F('naive_nlp_description') +\
+#                        F('weekday') +F('angry_description')
+            # +F('summary')
 
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -320,51 +323,74 @@ class Model(object):
         #return the encoded set of features
         tr_features = self.__make_features__(self.tr_d)
 
-        self.regressors = []
+        self.regressors = [0,0,0]#initialize
 
         start = time.time()
-        for col_name in cols_to_predict:
 
-#            regressor = linear_model.SGDRegressor(n_iter=10,
-#                                                penalty = 'elasticnet',
-#                                                alpha = 0.0001,
-#                                                power_t = 0.2,
-#                                                shuffle = True)
-#                                                #random_state = 7
-#                               
+        self.fit_comments(tr_features)
+        self.fit_views(tr_features)
+        self.fit_votes(tr_features)
 
-#            regressor = linear_model.Ridge(alpha=0.0, 
-#                                   copy_X=True, 
-#                                   fit_intercept=True,
-#                                   max_iter=None,
-#                                   normalize=True, 
-#                                   solver='auto', 
-#                                   tol=0.00001)
+    def fit_votes(self,tr_features):
+        print 'Fitting num_votes'
+        start = time.time()
 
-            regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
-                                                   learning_rate=0.1,
-                                                   max_depth=6,
-                                                   verbose=0)
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=30,
+                                                       learning_rate=0.1,
+                                                       max_depth=6,
+                                                       verbose=0)
+
+#        regressor = linear_model.SGDRegressor(n_iter=5,
+#                                              penalty = 'elasticnet',
+#                                              alpha = 0.0001,
+#                                              power_t = 0.2,)
+
+
+
+        regressor.fit(tr_features, tog(self.tr_d['num_votes'].values))
+
+        self.regressors[2] = regressor
+        print 'Elapsed time %f' %(time.time() - start)
+
+    def fit_views(self,tr_features):
+        print 'Fitting num_views'
+        start = time.time()
+
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=60,
+                                                       learning_rate=0.1,
+                                                       max_depth=6,
+                                                       verbose=0)
+
+#        regressor = linear_model.SGDRegressor(n_iter=5,
+#                                              penalty = 'elasticnet',
+#                                              alpha = 0.0001,
+#                                              power_t = 0.2,
+#                                              shuffle = True)
 #
-#            if regressor != None: #Dependency injection
-#                print "user-specified regressor located"
-#                r = regressor
+        regressor.fit(tr_features, tog(self.tr_d['num_views'].values))
 
-            #r = linear_model.Ridge(alpha=0.5)  #MV experiment, as of 5 nov outperformed by SGDRegressor
-            #best performing regressor as of 10 nov
+        self.regressors[1] = regressor
+        print 'Elapsed time %f' %(time.time() - start)
 
-            #gives weird results:
-#            regressor = ensemble.RandomForestRegressor(n_estimators=5,
-#                                                       #learning_rate=0.1,
-#                                                       max_depth=None,
-#                                                       n_jobs=-1,
-#                                                       oob_score=True)
-            
-            regressor.fit(tr_features, tog(self.tr_d[col_name].values))
+    def fit_comments(self,tr_features):
+        print 'Fitting num_comments'
+        start = time.time()
 
-            self.regressors.append(regressor)
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
+                                                       learning_rate=0.1,
+                                                       max_depth=4,
+                                                       verbose=0)
 
-            print(time.time() - start)
+#        regressor = linear_model.SGDRegressor(n_iter=5,
+#                                              penalty = 'elasticnet',
+#                                              alpha = 0.0001,
+#                                              power_t = 0.2,
+#                                              shuffle = True)
+ 
+        regressor.fit(tr_features, tog(self.tr_d['num_comments'].values))
+
+        self.regressors[0] = regressor
+        print 'Elapsed time %f' %(time.time() - start)
 
     def predict(self, data = None, training_set = True):
         if data is None:
@@ -380,6 +406,7 @@ class Model(object):
             prediction_arr.append(untog(r.predict(features)))
             prediction_arr[-1]  = np.maximum(prediction_arr[-1], 0)
         predictions = Predictions(prediction_arr[0], prediction_arr[1], prediction_arr[2])
+
         if not training_set:
             predictions.correct_means()
         return predictions
@@ -396,7 +423,13 @@ class Predictions(object):
         e1 = tog(d.num_comments.values) - tog(self.comment_p)
         e2 = tog(d.num_views.values) - tog(self.view_p)
         e3 = tog(d.num_votes.values) - tog(self.vote_p)
+
+        print 'num_comments rms error: %f' % rms(e1)
+        print 'num_views rms error: %f' % rms(e2)
+        print 'num_votes rms error: %f' % rms(e3)
+
         error = rms(np.concatenate([e1,e2,e3]))
+
         return error
 
     def correct_means(self):

@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 import time
 from sklearn.feature_extraction.text import CountVectorizer
+import datetime
+import calendar
 
 boundaries = [(37.4,37.7),
               (37.7,37.9),

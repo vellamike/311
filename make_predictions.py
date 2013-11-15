@@ -4,4 +4,4 @@ Used to test modifications ot learn.py
 """
 
 import learn
-learn.make_predictions2(n_estimators=30)
+learn.make_predictions2()

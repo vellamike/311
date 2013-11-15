@@ -185,6 +185,13 @@ def city_feature(d):
             # Really we should figure this out.
     return cities
 
+def issue_age(timestr):
+    dt = datetime.datetime.strptime(timestr, "%Y-%m-%d %H:%M:%S")
+    time = calendar.timegm(dt.utctimetuple())
+    final = datetime.datetime.strptime("2013-04-30 23:51:37", "%Y-%m-%d %H:%M:%S")
+    finaltime = calendar.timegm(final.utctimetuple())
+    # the choice of final time is rather arbitrary.
+    return finaltime - time
 
 def make_category_dict(feature,threshold=0):
 

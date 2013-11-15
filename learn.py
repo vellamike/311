@@ -27,12 +27,13 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg(n_estimators=60):
+def test_prediction_alg():
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-10000])
+    
+    m = SubmissionGenerator(tr_d[:-10000], test_data = te_d)
 
-    m.train(n_estimators=n_estimators)
+    m.train()
     predictions = m.predict(data = tr_d[-10000:])
     
     training_set_error = predictions.training_set_error(tr_d[-10000:])
@@ -89,6 +90,38 @@ def untog(x):
 def rms(x):
     return np.sqrt(np.sum(x**2)/len(x))
 
+def add_features(d, s_d, t_d, summary_d):
+    weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
+    hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
+    day_sixth = lambda timestr : hour(timestr) // 3
+    feature_dic = {
+            'weekday': map(weekday,d.created_time.values), # 7
+
+            'source' : features.feature_to_int(d.source.values, # 9 
+                                               category_dict =\
+                                               s_d),
+
+            'tag_type' : features.feature_to_int(d.tag_type.values, # 43
+                                                 category_dict = t_d),
+
+            'summary' : features.feature_to_int(d.summary.values,  #9 
+                                                category_dict = summary_d),
+
+            'description' : map(int, d.description > 0),
+            'city': features.city_feature(d), #clusters #10
+            'day_sixth': map(day_sixth,d.created_time.values), # 4
+            'naive_nlp': map(features.naive_nlp,d.summary.values),
+            'naive_nlp_description': map(features.naive_nlp,d.description.values),
+            'summary_length':map(features.string_length,d.summary),
+            'description_length':map(features.string_length,d.description),            
+            'dense_neighbourhood':features.dense_neighbourhood(d),
+            'angry_post':(map(features.angry_post,d.summary.values)),
+            'angry_description':(map(features.angry_post,d.description.values)),
+        }
+    for k in feature_dic:
+        d[k] = feature_dic[k]
+    return d
+
 class BeastEncoder:
     def __add__(self, other):
         return AddEncoder(self, other)
@@ -112,29 +145,6 @@ class AddEncoder(BeastEncoder):
         return np.vstack((self.first.transform(d), self.second.transform(d)))
     def __repr__(self):
         return "(" + str(self.first) + " + " + str(self.second) + ")"
-
-class MulEncoder(BeastEncoder):
-    def __init__(self, first, second):
-        self.first = first
-        self.second = second
-    def fit(self, d):
-        self.first.fit(d)
-        self.second.fit(d)
-        self.shape = []
-        for v in self.first.shape:
-            for w in self.second.shape:
-                self.shape.append(v * w)
-        return self
-    def transform(self, d):
-        tf = self.first.transform(d)
-        ts = self.second.transform(d)
-        cols = []
-        for (cf, v) in zip(tf, self.first.shape):
-            for (cs, w) in zip(ts, self.second.shape):
-                cols.append(v * cs + cf)
-        return np.vstack(cols)
-    def __repr__(self):
-        return str(self.first) + " * " + str(self.second)
 
 class F(BeastEncoder):
     def __init__(self, str):
@@ -175,6 +185,9 @@ def chicago_fix(d):
     return d
 
 class Model(object):
+    ''' Represents a model for one of {comments, views, votes}. Allows training
+    and predicting using the model. '''
+
     def __init__(self, training_data = None, test_data = None):
         if training_data is None:
             self.tr_d = load_data(training_set = True)
@@ -190,100 +203,14 @@ class Model(object):
         #self.te_d = chicago_fix(self.te_d)
 
     def __make_features__(self, d):
-        weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
-        hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
-        day_sixth = lambda timestr : hour(timestr) // 3
-
-        if self.km is None:
-            (self.km, clusters) = features.neighbourhoods(d)
-        else:
-            clusters = self.km.predict(d[['latitude','longitude']])
-        
-        #Three loops below need to be a fn:
-        #build a dict of summary frequencies
-        summary_freq_dict = {}
-        for s in d.summary:
-            if s not in summary_freq_dict:
-                summary_freq_dict[s] = (d.summary == s).sum()
-
-        #build a dict of tag frequencies
-        tag_freq_dict = {}
-        for s in d.tag_type:
-            if s not in tag_freq_dict:
-                tag_freq_dict[s] = (d.tag_type == s).sum()
-
-        #build a dict of tag frequencies
-        source_freq_dict = {}
-        for s in d.source:
-            if s not in source_freq_dict:
-                source_freq_dict[s] = (d.source == s).sum()
-
-
-
-        feature_dic = {
-            'weekday': map(weekday,d.created_time.values), # 7
-
-            'source' : features.feature_to_int(d.source.values, # 9 
-                                               category_dict =\
-                                               self.s_d),
-
-            'tag_type' : features.feature_to_int(d.tag_type.values, # 43
-                                                 category_dict = self.t_d),
-
-            'summary' : features.feature_to_int(d.summary.values,  #9 
-                                                category_dict = self.summary_d,),
-
-            'description' : map(int, d.description > 0),
-            'city': features.city_feature(d), #clusters #10
-            'day_sixth': map(day_sixth,d.created_time.values), # 4
-            'naive_nlp': map(features.naive_nlp,d.summary.values),
-            'naive_nlp_description': map(features.naive_nlp,d.description.values),
-            'summary_length':map(features.string_length,d.summary),
-            'description_length':map(features.string_length,d.description),            
-            #            #huge number of features
-
-            'dense_neighbourhood':features.dense_neighbourhood(d),
-            'angry_post':(map(features.angry_post,d.summary.values)),
-            'angry_description':(map(features.angry_post,d.description.values)),
-
-
-
-        }
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
 
-
-        for f in feature_dic:
-            pass
-            #print(f)
-            #print(set(feature_dic[f]))
-
-        for a in feature_dic.values():
-            if not (len(a) == len(d.id.values)):
-                pdb.set_trace()
+        #for a in feature_dic.values():
+        #    if not (len(a) == len(d.id.values)):
+        #        pdb.set_trace()
         
         if self.beast_encoder is None:
-            be_pw = F('tag_type') * F('source') + \
-                     F('tag_type') * F('city') +\
-                     F('tag_type') * F('weekday') +\
-                     F('source') * F('city') + \
-                     F('source') * F('weekday') +\
-                     F('city') * F('weekday') +\
-                     F('source') * F('day_sixth') +\
-                     F('tag_type') * F('day_sixth') +\
-                     F('city') * F('day_sixth') +\
-                     F('day_sixth') * F('weekday')
-
-            be_city_focus = F('city') * (\
-                                         F('weekday') +\
-                                         F('description') +\
-                                         F('source') * F('tag_type') + \
-                                         F('source') * F('description') \
-                                         + F('tag_type') * F('description')\
-                                         )
-
-            be_small_niche = (F('tag_type') * F('source') * F('city'))
-
-            be_linear = F('tag_type') + F('source') + F('city') +\
+            self.beast_encoder = F('tag_type') + F('source') + F('city') +\
                         F('naive_nlp') +F('summary_length') +\
                         F('angry_post') + F('description_length') +F('naive_nlp_description') +\
                         F('day_sixth')
@@ -291,10 +218,9 @@ class Model(object):
 #The following have been found to have poor predictive capacity:
 # +F('weekday') +F('angry_description') # +F('description')# + F('summary')
 
-            self.beast_encoder = be_linear
-            self.beast_encoder.fit(feature_dic)
+            self.beast_encoder.fit(d)
 
-        int_features = self.beast_encoder.transform(feature_dic).transpose()
+        int_features = self.beast_encoder.transform(d).transpose()
         
         print("int_features: "+str(int_features.shape))
         
@@ -308,104 +234,19 @@ class Model(object):
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
 
-    def train(self,n_estimators=65):
+    def train(self, training_col):
         """
         Train the model from the training set.
-
-        Currently using SGDRegressor
         """
-
         #this stage is confusing, s_d needs to work for
         #__make_features__ to work properly
-        self.summary_d = features.make_category_dict(self.tr_d.summary.values,threshold=10)
 
-        self.s_d = features.make_category_dict(self.tr_d.source.values)
-        self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
 
         #return the encoded set of features
         tr_features = self.__make_features__(self.tr_d)
 
-        self.regressors = [0,0,0]#initialize
-
         start = time.time()
-
-        self.fit_comments(tr_features)
-        self.fit_views(tr_features)
-        self.fit_votes(tr_features)
-
-    def fit_votes(self,tr_features):
-        print 'Fitting num_votes'
-        start = time.time()
-
-        regressor = ensemble.GradientBoostingRegressor(n_estimators=30,
-                                                       learning_rate=0.1,
-                                                       max_depth=6,
-                                                       verbose=0)
-
-#        regressor = ensemble.RandomForestRegressor(n_estimators=30,
-#                                                   max_depth=6,
-#                                                   verbose=0)
-
-
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,)
-
-
-
-        regressor.fit(tr_features, tog(self.tr_d['num_votes'].values))
-
-        self.regressors[2] = regressor
-        print 'Elapsed time %f' %(time.time() - start)
-
-    def fit_views(self,tr_features):
-        print 'Fitting num_views'
-        start = time.time()
-
-        regressor = ensemble.GradientBoostingRegressor(n_estimators=60,
-                                                       learning_rate=0.1,
-                                                       max_depth=6,
-                                                       verbose=0)
-
-
-#        regressor = ensemble.RandomForestRegressor(n_estimators=60,
-#                                                   max_depth=6,
-#                                                   verbose=0)
-
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,
-#                                              shuffle = True)
-
-        regressor.fit(tr_features, tog(self.tr_d['num_views'].values))
-
-        self.regressors[1] = regressor
-        print 'Elapsed time %f' %(time.time() - start)
-
-    def fit_comments(self,tr_features):
-        print 'Fitting num_comments'
-        start = time.time()
-
-#        regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
-#                                                   learning_rate=0.1,
-#                                                   max_depth=4,
-#                                                   verbose=0)
-
-        regressor = ensemble.RandomForestRegressor(n_estimators=30,
-                                                   max_depth=4,
-                                                   verbose=0)
-
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,
-#                                              shuffle = True)
-# 
-        regressor.fit(tr_features, tog(self.tr_d['num_comments'].values))
-
-        self.regressors[0] = regressor
+        self.regressor.fit(tr_features, tog(training_col))
         print 'Elapsed time %f' %(time.time() - start)
 
     def predict(self, data = None, training_set = True):
@@ -417,15 +258,69 @@ class Model(object):
 
         features = self.__make_features__(data) 
         print("features: " + str(features.shape))
-        prediction_arr = []
-        for r in self.regressors:
-            prediction_arr.append(untog(r.predict(features)))
-            prediction_arr[-1]  = np.maximum(prediction_arr[-1], 0)
-        predictions = Predictions(prediction_arr[0], prediction_arr[1], prediction_arr[2])
+        predictions = untog(self.regressor.predict(features))
+        predictions = np.maximum(predictions, 0)
+        return predictions
 
+class SubmissionGenerator:
+    ''' Makes a submission. Contains training and predicting code. Running the
+    prediction code returns a Prediction that we can then write to a file. '''
+
+    def __init__(self, training_data = None, test_data = None):
+        if training_data is None:
+            self.tr_d = load_data(training_set = True)
+        else:
+            self.tr_d = training_data
+        if test_data is None:
+            self.te_d = load_data(training_set = False)
+        else:
+            self.te_d = test_data
+        
+        self.s_d = features.make_category_dict(self.tr_d.source.values)
+        self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
+        self.summary_d = features.make_category_dict(self.tr_d.summary.values,threshold=10)
+        
+        self.tr_d = add_features(self.tr_d, self.s_d, self.t_d, self.summary_d)
+        self.comment_model = Model(training_data = self.tr_d, test_data =
+                                   self.te_d)
+        self.view_model = Model(training_data = self.tr_d, test_data =
+                                   self.te_d)
+        self.vote_model = Model(training_data = self.tr_d, test_data =
+                                   self.te_d)
+        self.models = (self.comment_model, self.view_model, self.vote_model)
+
+    def train(self):
+        self.vote_model.regressor =\
+        ensemble.GradientBoostingRegressor(n_estimators=30,
+                                                       learning_rate=0.1,
+                                                       max_depth=6,
+                                                       verbose=0)
+
+        self.view_model.regressor =\
+        ensemble.GradientBoostingRegressor(n_estimators=60,
+                                                       learning_rate=0.1,
+                                                       max_depth=6,
+                                                       verbose=0)
+        
+        self.comment_model.regressor =\
+        ensemble.RandomForestRegressor(n_estimators=30,
+                                                   max_depth=4,
+                                                   verbose=0)
+        for (m, c) in zip(self.models,cols_to_predict):
+            m.train(self.tr_d[c].values)
+
+    def predict(self, data = None, training_set = True):
+        if data is None:
+            if training_set:
+                data = self.tr_d
+            else:
+                data = self.te_d
+        p = []
+        for m in self.models:
+            p.append(m.predict(data))
         if not training_set:
             predictions.correct_means()
-        return predictions
+        return Predictions(p[0], p[1], p[2])
 
 class Predictions(object):
     ''' Represents a set of test predictions. '''

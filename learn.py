@@ -288,8 +288,8 @@ class Model(object):
                         F('angry_post') + F('description_length') +F('naive_nlp_description') +\
                         F('day_sixth')
 
-# negative results:
-#                        F('weekday') +F('angry_description') 
+#The following have been found to have poor predictive capacity:
+# +F('weekday') +F('angry_description') # +F('description')# + F('summary')
 
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -342,6 +342,11 @@ class Model(object):
                                                        max_depth=6,
                                                        verbose=0)
 
+#        regressor = ensemble.RandomForestRegressor(n_estimators=30,
+#                                                   max_depth=6,
+#                                                   verbose=0)
+
+
 #        regressor = linear_model.SGDRegressor(n_iter=5,
 #                                              penalty = 'elasticnet',
 #                                              alpha = 0.0001,
@@ -363,6 +368,11 @@ class Model(object):
                                                        max_depth=6,
                                                        verbose=0)
 
+
+#        regressor = ensemble.RandomForestRegressor(n_estimators=60,
+#                                                   max_depth=6,
+#                                                   verbose=0)
+
 #        regressor = linear_model.SGDRegressor(n_iter=5,
 #                                              penalty = 'elasticnet',
 #                                              alpha = 0.0001,
@@ -378,10 +388,14 @@ class Model(object):
         print 'Fitting num_comments'
         start = time.time()
 
-        regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
-                                                       learning_rate=0.1,
-                                                       max_depth=4,
-                                                       verbose=0)
+#        regressor = ensemble.GradientBoostingRegressor(n_estimators=40,
+#                                                   learning_rate=0.1,
+#                                                   max_depth=4,
+#                                                   verbose=0)
+
+        regressor = ensemble.RandomForestRegressor(n_estimators=40,
+                                                   max_depth=4,
+                                                   verbose=0)
 
 #        regressor = linear_model.SGDRegressor(n_iter=5,
 #                                              penalty = 'elasticnet',

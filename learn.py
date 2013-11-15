@@ -39,7 +39,7 @@ def test_prediction_alg(n_estimators=30):
     print 'training set error:'
     print training_set_error
 
-    return (training_set_error,m, predictions, e)
+    return (training_set_error, m, predictions)
 
 def identify_dupes(data_set = None):
     pass
@@ -204,6 +204,7 @@ class Model(object):
 
 
         feature_dic = {
+            'age': map(features.issue_age, d.created_time.values),
             'weekday': map(weekday,d.created_time.values), # 7
 
             'source' : features.feature_to_int(d.source.values, # 9 
@@ -246,7 +247,7 @@ class Model(object):
                                  F('naive_nlp') +\
                                  F('summary_length') +\
                                  F('angry_post') +\
-                                 F('description_length')
+                                 F('description_length') 
             self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()

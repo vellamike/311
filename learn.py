@@ -284,10 +284,12 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('day_sixth') +F('naive_nlp')  +F('summary_length') +\
+                        F('naive_nlp') +F('summary_length') +\
                         F('angry_post') + F('description_length') +F('naive_nlp_description') +\
-#                        F('weekday') +F('angry_description')
-            # +F('summary')
+                        F('day_sixth')
+
+# negative results:
+#                        F('weekday') +F('angry_description') 
 
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -366,7 +368,7 @@ class Model(object):
 #                                              alpha = 0.0001,
 #                                              power_t = 0.2,
 #                                              shuffle = True)
-#
+
         regressor.fit(tr_features, tog(self.tr_d['num_views'].values))
 
         self.regressors[1] = regressor
@@ -386,7 +388,7 @@ class Model(object):
 #                                              alpha = 0.0001,
 #                                              power_t = 0.2,
 #                                              shuffle = True)
- 
+# 
         regressor.fit(tr_features, tog(self.tr_d['num_comments'].values))
 
         self.regressors[0] = regressor

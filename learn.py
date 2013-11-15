@@ -393,7 +393,7 @@ class Model(object):
 #                                                   max_depth=4,
 #                                                   verbose=0)
 
-        regressor = ensemble.RandomForestRegressor(n_estimators=40,
+        regressor = ensemble.RandomForestRegressor(n_estimators=30,
                                                    max_depth=4,
                                                    verbose=0)
 

@@ -97,11 +97,17 @@ def add_features(d, s_d, t_d, summary_d):
             'summary_length':map(features.string_length,d.summary),
             'description_length':map(features.string_length,d.description),            
             'dense_neighbourhood':features.dense_neighbourhood(d),
-            'angry_post':(map(features.angry_post,d.summary.values)),
-            'angry_description':(map(features.angry_post,d.description.values)),
+            'angry_post':map(features.angry_post,d.summary.values),
+            'angry_description':map(features.angry_post,d.description.values),
         }
+
+    scalar_feature_dic = {
+            'age': map(features.issue_age, d.created_time.values)
+    }
     for k in feature_dic:
         d[k] = feature_dic[k]
+    for k in scalar_feature_dic:
+        d[k] = scalar_feature_dic[k]
     return d
 
 class BeastEncoder:
@@ -230,7 +236,12 @@ class Model(object):
             print("Encoded feature shape: "+str(encoded_features.shape))
         else:
             encoded_features = self.enc.transform(int_features).todense()
-        return encoded_features
+
+        scalar_features = np.array([d['age']]).transpose()
+        features = np.concatenate([encoded_features,
+                                   scalar_features],
+                                  axis = 1)
+        return features
 
     def train(self, training_data, training_col):
         """

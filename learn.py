@@ -28,42 +28,25 @@ import features
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
 def test_prediction_alg():
-    tr_d = load_data(True)
-    te_d = load_data(False)
-    
-    m = SubmissionGenerator(tr_d[:-10000], test_data = te_d)
-
-    m.train()
-    predictions = m.predict(data = tr_d[-10000:])
-    
+    (tr_d, te_d) = (tr_data(), te_data())
+    print("training...")
+    m = SubmissionGenerator().train(tr_d[:-10000])
+    print("predicting...")
+    predictions = m.predict(tr_d[-10000:])
     training_set_error = predictions.training_set_error(tr_d[-10000:])
 
-    print 'training set error:'
-    print training_set_error
+    print('training set error: {0}'.format(training_set_error))
 
-    #predictions.write()
     e = tr_d[-10000:]
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
     return (training_set_error,m, predictions, e)
 
-def identify_dupes(data_set = None):
-    pass
-
-def make_predictions2(n_estimators=30):
-    tr_d = load_data(True)
-    te_d = load_data(False)
-    m = Model(tr_d)
-    m.train(n_estimators=n_estimators)
-    predictions = m.predict(data = te_d)
-
-#    #horrible hack:
-#    for i,comment in enumerate(predictions.comment_p):
-#        if comment>5:
-#            predictions.comment_p[i] = 0
-
-    # probable error if this violated:
+def make_submission(n_estimators=30):
+    (tr_d, te_d) = (tr_data(), te_data())
+    m = SubmissionGenerator().train(tr_d)
+    predictions = m.predict(te_d)
     assert(np.max(predictions.comment_p)<5) 
     predictions.correct_means()
     assert(np.max(predictions.comment_p)<5)
@@ -71,15 +54,11 @@ def make_predictions2(n_estimators=30):
     predictions.write(te_d)
     return (m, predictions)
 
-#TODO - This fn is confusing IMO,
-def load_data(training_set,after_row = 160000):
-    ''' Loads training or test data. '''
-    if training_set:
-        d = pandas.read_csv("data/train.csv")
-#        d = pandas.read_csv("data/train_city_fixed.csv")
-        return d[after_row:]
-    else:
-        return pandas.read_csv("data/test.csv")
+def tr_data(after_row = 160000):
+    return pandas.read_csv("data/train.csv")[after_row:]
+
+def te_data():
+    return pandas.read_csv("data/test.csv")
 
 def tog(x):
     return np.log(x + 1)
@@ -89,6 +68,9 @@ def untog(x):
 
 def rms(x):
     return np.sqrt(np.sum(x**2)/len(x))
+
+def identify_dupes(data_set = None):
+    pass
 
 def add_features(d, s_d, t_d, summary_d):
     weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
@@ -146,11 +128,35 @@ class AddEncoder(BeastEncoder):
     def __repr__(self):
         return "(" + str(self.first) + " + " + str(self.second) + ")"
 
+class MulEncoder(BeastEncoder):
+    def __init__(self, first, second):
+        self.first = first
+        self.second = second
+    def fit(self, d):
+        self.first.fit(d)
+        self.second.fit(d)
+        self.shape = []
+        for v in self.first.shape:
+            for w in self.second.shape:
+                self.shape.append(v * w)
+        return self
+    def transform(self, d):
+        tf = self.first.transform(d)
+        ts = self.second.transform(d)
+        cols = []
+        for (cf, v) in zip(tf, self.first.shape):
+            for (cs, w) in zip(ts, self.second.shape):
+                cols.append(v * cs + cf)
+        return np.vstack(cols)
+    def __repr__(self):
+        return str(self.first) + " * " + str(self.second)
+
 class F(BeastEncoder):
     def __init__(self, str):
         self.str = str
     def fit(self, d):
         #self.shape = [len(set(d[self.str]))]
+        #pdb.set_trace()
         self.shape = [np.max(d[self.str])+1]
         return self
     def transform(self, d):
@@ -188,15 +194,7 @@ class Model(object):
     ''' Represents a model for one of {comments, views, votes}. Allows training
     and predicting using the model. '''
 
-    def __init__(self, training_data = None, test_data = None):
-        if training_data is None:
-            self.tr_d = load_data(training_set = True)
-        else:
-            self.tr_d = training_data
-        if test_data is None:
-            self.te_d = load_data(training_set = False)
-        else:
-            self.te_d = test_data
+    def __init__(self):
         self.enc = None
         self.beast_encoder = None
         self.km = None
@@ -234,7 +232,7 @@ class Model(object):
             encoded_features = self.enc.transform(int_features).todense()
         return encoded_features
 
-    def train(self, training_col):
+    def train(self, training_data, training_col):
         """
         Train the model from the training set.
         """
@@ -243,7 +241,7 @@ class Model(object):
 
 
         #return the encoded set of features
-        tr_features = self.__make_features__(self.tr_d)
+        tr_features = self.__make_features__(training_data)
 
         start = time.time()
         self.regressor.fit(tr_features, tog(training_col))
@@ -266,60 +264,45 @@ class SubmissionGenerator:
     ''' Makes a submission. Contains training and predicting code. Running the
     prediction code returns a Prediction that we can then write to a file. '''
 
-    def __init__(self, training_data = None, test_data = None):
-        if training_data is None:
-            self.tr_d = load_data(training_set = True)
-        else:
-            self.tr_d = training_data
-        if test_data is None:
-            self.te_d = load_data(training_set = False)
-        else:
-            self.te_d = test_data
-        
-        self.s_d = features.make_category_dict(self.tr_d.source.values)
-        self.t_d = features.make_category_dict(self.tr_d.tag_type.values)
-        self.summary_d = features.make_category_dict(self.tr_d.summary.values,threshold=10)
-        
-        self.tr_d = add_features(self.tr_d, self.s_d, self.t_d, self.summary_d)
-        self.comment_model = Model(training_data = self.tr_d, test_data =
-                                   self.te_d)
-        self.view_model = Model(training_data = self.tr_d, test_data =
-                                   self.te_d)
-        self.vote_model = Model(training_data = self.tr_d, test_data =
-                                   self.te_d)
+    def __init__(self):
+        self.comment_model = Model()
+        self.view_model = Model()
+        self.vote_model = Model()
         self.models = (self.comment_model, self.view_model, self.vote_model)
 
-    def train(self):
+    def train(self, data):
+        self.s_d = features.make_category_dict(data.source.values)
+        self.t_d = features.make_category_dict(data.tag_type.values)
+        self.summary_d = features.make_category_dict(data.summary.values,threshold=10)
+        training_data = add_features(data, self.s_d, self.t_d, self.summary_d)
+
         self.vote_model.regressor =\
-        ensemble.GradientBoostingRegressor(n_estimators=30,
+		ensemble.GradientBoostingRegressor(n_estimators=30,
                                                        learning_rate=0.1,
                                                        max_depth=6,
                                                        verbose=0)
 
         self.view_model.regressor =\
-        ensemble.GradientBoostingRegressor(n_estimators=60,
+		ensemble.GradientBoostingRegressor(n_estimators=60,
                                                        learning_rate=0.1,
                                                        max_depth=6,
                                                        verbose=0)
         
         self.comment_model.regressor =\
-        ensemble.RandomForestRegressor(n_estimators=30,
+		ensemble.RandomForestRegressor(n_estimators=30,
                                                    max_depth=4,
                                                    verbose=0)
-        for (m, c) in zip(self.models,cols_to_predict):
-            m.train(self.tr_d[c].values)
 
-    def predict(self, data = None, training_set = True):
-        if data is None:
-            if training_set:
-                data = self.tr_d
-            else:
-                data = self.te_d
+
+        for (m, c) in zip(self.models,cols_to_predict):
+            m.train(training_data, training_data[c].values)
+        return self
+
+    def predict(self, data):
+        test_data = add_features(data, self.s_d, self.t_d, self.summary_d)
         p = []
         for m in self.models:
-            p.append(m.predict(data))
-        if not training_set:
-            predictions.correct_means()
+            p.append(m.predict(test_data))
         return Predictions(p[0], p[1], p[2])
 
 class Predictions(object):

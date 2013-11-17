@@ -3,6 +3,7 @@ In order of subjective importance (i.e. expected score improvement / implementat
 
 1. BD, MV: Can we incorporate text with GBM? Perhaps we do this by reducing the number of features to the GBM.
 1. MV: Tune the max_depth feature of the GBM, as suggested on Sklearn GBM page.
+1. Do tfidf with max_features parameter set. e.g. = 100. Greatly speed up computation and reduce overfitting.
 1. MV: Try subtting a blend of regressors. 
 1. BD: See whether special considerations for Chicago improve the score.
 1. MV: Look for duplicates in test data. How common are they? The city often marks duplicates as closed. Doing this removes the option to vote. Can we use this?

@@ -43,7 +43,7 @@ def test_prediction_alg():
     e['comment_p'] = predictions.comment_p
     return (training_set_error,m, predictions, e)
 
-def make_submission(n_estimators=30):
+def make_submission():
     (tr_d, te_d) = (tr_data(), te_data())
     m = SubmissionGenerator().train(tr_d)
     predictions = m.predict(te_d)
@@ -241,7 +241,7 @@ class Model(object):
         features = np.concatenate([encoded_features,
                                    scalar_features],
                                   axis = 1)
-        return features
+        return features #encoded_features # no age
 
     def train(self, training_data, training_col):
         """
@@ -363,23 +363,11 @@ class Predictions(object):
     def write(self, d, file = "predictions.csv"):
         assert(self.corrected)
         assert(np.min(self.vote_p)>= 1)
-        #pdb.set_trace()
-        id = ['id']
-        num_views = ['num_views']
-        num_votes = ['num_votes']
-        num_comments = ['num_comments']
-
-        ids = d['id'].values # np.concatenate([id, d['id'].values.astype(dtype = 'S')])
-        assert(np.max(self.comment_p)<5)
-        comments = self.comment_p# np.concatenate([num_comments, self.comment_p])
-        assert(np.max(comments)<5)
-        views = self.view_p# np.concatenate([num_views, self.view_p])
-        votes = self.vote_p# np.concatenate([num_votes, self.vote_p])
-
         with open(file,'w') as handle:
-            for (id, comment, view, vote) in zip(ids, comments, views, votes):
+            handle.write("id,num_views,num_votes,num_comments\n")
+            for (id, comment, view, vote) in zip(d.id, self.comment_p, self.view_p, self.vote_p):
                 assert(comment < 5)
-                handle.write("{0},{1},{2},{3}\n".format(id, view, vote, comment))
+                handle.write("{0},{1:.10f},{2:.10f},{3:.10f}\n".format(id, view, vote, comment))
     
 def make_vw_training_set(d, features):
     with open("data/vowpal_training.vw","w") as handle:

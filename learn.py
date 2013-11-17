@@ -14,6 +14,8 @@ import sklearn.preprocessing
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.tree import DecisionTreeRegressor
 from multiprocessing import Pool
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 import pdb
 import math
@@ -43,9 +45,11 @@ def test_prediction_alg():
     e['comment_p'] = predictions.comment_p
     return (training_set_error,m, predictions, e)
 
-def make_submission():
+def make_submission(short_trees = True):
     (tr_d, te_d) = (tr_data(), te_data())
-    m = SubmissionGenerator().train(tr_d)
+    m = SubmissionGenerator()
+    m.short_trees = short_trees
+    m.train(tr_d)
     predictions = m.predict(te_d)
     assert(np.max(predictions.comment_p)<5) 
     predictions.correct_means()
@@ -228,17 +232,19 @@ class Model(object):
         
         print("int_features: "+str(int_features.shape))
         
+        using_tfidf = False
         if self.enc is None:
+            
+            if using_tfidf:
+		    self.vectorizer = TfidfVectorizer(min_df=1)
+		    corpus = d.summary.values
+		    X = self.vectorizer.fit_transform(corpus)
+		    dense_X = X.toarray()
 
-            self.vectorizer = TfidfVectorizer(min_df=1)
-            corpus = d.summary.values
-            X = self.vectorizer.fit_transform(corpus)
-            dense_X = X.toarray()
-
-            self.description_vectorizer = TfidfVectorizer(min_df=1)
-            description_corpus = map(str,d.description.values)
-            X_description = self.description_vectorizer.fit_transform(description_corpus)
-            dense_X_description = X_description.toarray()
+		    self.description_vectorizer = TfidfVectorizer(min_df=1)
+		    description_corpus = map(str,d.description.values)
+		    X_description = self.description_vectorizer.fit_transform(description_corpus)
+		    dense_X_description = X_description.toarray()
 
             
             self.enc = sklearn.preprocessing.OneHotEncoder(
@@ -251,26 +257,23 @@ class Model(object):
         else:
 
             print 'now computing the rest'
-            corpus = d.summary.values
-            dense_X = self.vectorizer.transform(corpus).toarray()
-
-            encoded_features = self.enc.transform(int_features).todense()
-
-            description_corpus = map(str,d.description.values)
-
-            dense_X_description = self.description_vectorizer.transform(description_corpus).toarray()
-
-            encoded_features = self.enc.transform(int_features).todense()
+	    encoded_features = self.enc.transform(int_features).todense()
+            if using_tfidf:
+                corpus = d.summary.values
+	        dense_X = self.vectorizer.transform(corpus).toarray()
+	        description_corpus = map(str,d.description.values)
+	        dense_X_description = self.description_vectorizer.transform(description_corpus).toarray()
+	        encoded_features = self.enc.transform(int_features).todense()
 
 
 
-        print 'encoded features shape before:'
-        print np.shape(encoded_features)
-        encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
-        encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
-
-        print 'encoded features shape after:'
-        print np.shape(encoded_features)
+        if using_tfidf:
+            print 'encoded features shape before:'
+	    print np.shape(encoded_features)
+	    encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+	    encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+            print 'encoded features shape after:'
+	    print np.shape(encoded_features)
 
         scalar_features = np.array([d['age']]).transpose()
         features = np.concatenate([encoded_features,
@@ -321,25 +324,38 @@ class SubmissionGenerator:
         self.t_d = features.make_category_dict(data.tag_type.values)
         self.summary_d = features.make_category_dict(data.summary.values,threshold=10)
         training_data = add_features(data, self.s_d, self.t_d, self.summary_d)
-
-        self.vote_model.regressor =\
-		ensemble.GradientBoostingRegressor(n_estimators=30,
-                                                       learning_rate=0.1,
-                                                       max_depth=6,
-                                                       verbose=0)
-
-        self.view_model.regressor =\
-		ensemble.GradientBoostingRegressor(n_estimators=60,
-                                                       learning_rate=0.1,
-                                                       max_depth=6,
-                                                       verbose=0)
         
-        self.comment_model.regressor =\
-		ensemble.RandomForestRegressor(n_estimators=30,
-                                                   max_depth=4,
-                                                   verbose=0)
-
-        for (m, c) in zip(self.models,cols_to_predict):
+        if self.short_trees:
+		self.comment_model.regressor =\
+			ensemble.RandomForestRegressor(n_estimators=30,
+							   max_depth=4,
+							   verbose=0)
+		self.view_model.regressor =\
+			ensemble.GradientBoostingRegressor(n_estimators=20,
+							       learning_rate=0.3,
+							       max_depth=4,
+							       verbose=0)
+		self.vote_model.regressor =\
+			ensemble.GradientBoostingRegressor(n_estimators=20,
+							       learning_rate=0.3,
+							       max_depth=4,
+							       verbose=0)
+        else:
+		self.comment_model.regressor =\
+			ensemble.RandomForestRegressor(n_estimators=30,
+							   max_depth=4,
+							   verbose=0)
+		self.view_model.regressor =\
+			ensemble.GradientBoostingRegressor(n_estimators=30,
+							       learning_rate=0.1,
+							       max_depth=6,
+							       verbose=0)
+		self.vote_model.regressor =\
+			ensemble.GradientBoostingRegressor(n_estimators=30,
+							       learning_rate=0.1,
+							       max_depth=6,
+							       verbose=0)
+	for (m, c) in zip(self.models,cols_to_predict):
             m.train(training_data, training_data[c].values)
         return self
 

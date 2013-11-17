@@ -1,16 +1,15 @@
 # Things to try
 In order of subjective importance (i.e. expected score improvement / implementation time.)
 
-1. BD: NLP - extremely naive implementation right now, how can it be improved?
-1. MV: Train a random forest regressor on the data. See how it compares to GBM. If it performs well, try submitting a blend of this with GBM. 
+1. BD, MV: Can we incorporate text with GBM? Perhaps we do this by reducing the number of features to the GBM.
+1. MV: Tune the max_depth feature of the GBM, as suggested on Sklearn GBM page.
+1. MV: Try subtting a blend of regressors. 
 1. BD: See whether special considerations for Chicago improve the score.
 1. MV: Look for duplicates in test data. How common are they? The city often marks duplicates as closed. Doing this removes the option to vote. Can we use this?
 1. BD,MV: _Why do the mean corrections in time not improve the score?_
 1. BD,MV: _Why do we have large variation in correction factors between v,v and c?_
-1. BD: Add ability to use scalar as well as catagorical features.
 1. BD: Speed up computating by not computing features which are never used.
-1. MV: Separate hyperparameter scans for each of {c,v,v}. More generally, think about using a different model for each of {c,v,v}.
-1. BD: New feature: Submission time. Scalar feature. Should capture some of the shift in the distribution over time.
+1. MV: Separate hyperparameter scans for each of {c,v,v}. 
 1. MV: Separate training for remote\_api\_created, perhaps even separate training sets
 1. MV: Data preformatting: this has to be critical, what can we do?
 1. MV: With GBM, going from 40 to 30 estimators caused a very slight improvement, would 30 to 20 cause a more significant improvement? Where on the estimators/score curve is the right place? (BD: Have you tried this, MV?)

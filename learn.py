@@ -229,13 +229,48 @@ class Model(object):
         print("int_features: "+str(int_features.shape))
         
         if self.enc is None:
+
+            self.vectorizer = TfidfVectorizer(min_df=1)
+            corpus = d.summary.values
+            X = self.vectorizer.fit_transform(corpus)
+            dense_X = X.toarray()
+
+            self.description_vectorizer = TfidfVectorizer(min_df=1)
+            description_corpus = map(str,d.description.values)
+            X_description = self.description_vectorizer.fit_transform(description_corpus)
+            dense_X_description = X_description.toarray()
+
+            
             self.enc = sklearn.preprocessing.OneHotEncoder(
                                             n_values = self.beast_encoder.shape
                                                )
             encoded_features = self.enc.fit_transform(int_features).todense()
             print("Encoded feature shape: "+str(encoded_features.shape))
+
+
         else:
+
+            print 'now computing the rest'
+            corpus = d.summary.values
+            dense_X = self.vectorizer.transform(corpus).toarray()
+
             encoded_features = self.enc.transform(int_features).todense()
+
+            description_corpus = map(str,d.description.values)
+
+            dense_X_description = self.description_vectorizer.transform(description_corpus).toarray()
+
+            encoded_features = self.enc.transform(int_features).todense()
+
+
+
+        print 'encoded features shape before:'
+        print np.shape(encoded_features)
+        encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+        encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+
+        print 'encoded features shape after:'
+        print np.shape(encoded_features)
 
         scalar_features = np.array([d['age']]).transpose()
         features = np.concatenate([encoded_features,
@@ -303,7 +338,6 @@ class SubmissionGenerator:
 		ensemble.RandomForestRegressor(n_estimators=30,
                                                    max_depth=4,
                                                    verbose=0)
-
 
         for (m, c) in zip(self.models,cols_to_predict):
             m.train(training_data, training_data[c].values)

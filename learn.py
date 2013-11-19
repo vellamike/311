@@ -13,7 +13,15 @@ from sklearn.linear_model import SGDRegressor
 import sklearn.preprocessing
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+from threading import Thread
+
 from multiprocessing import Pool
+from multiprocessing import Process
+from multiprocessing import Manager
 
 import pdb
 import math
@@ -24,6 +32,26 @@ from sklearn import ensemble
 
 # our code
 import features
+
+#def _pickle_method(method):
+#    func_name = method.im_func.__name__
+#    obj = method.im_self
+#    cls = method.im_class
+#    return _unpickle_method, (func_name, obj, cls)
+#
+#def _unpickle_method(func_name, obj, cls):
+#    for cls in cls.mro():
+#        try:
+#            func = cls.__dict__[func_name]
+#        except KeyError:
+#            pass
+#        else:
+#            break
+#    return func.__get__(obj, cls)
+#
+#import copy_reg
+#import types
+#copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
@@ -50,7 +78,7 @@ def test_prediction_alg(n_estimators=60):
 def identify_dupes(data_set = None):
     pass
 
-def make_predictions2(n_estimators=30):
+def make_predictions2(n_estimators=20):
     tr_d = load_data(True)
     te_d = load_data(False)
     m = Model(tr_d)
@@ -284,12 +312,13 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('naive_nlp') +F('summary_length') +\
-                        F('angry_post') + F('description_length') +F('naive_nlp_description') +\
-                        F('day_sixth')
+                        F('angry_post') + F('day_sixth') +F('summary_length') + F('description_length') + F('naive_nlp') + F('naive_nlp_description')
+
 
 #The following have been found to have poor predictive capacity:
 # +F('weekday') +F('angry_description') # +F('description')# + F('summary')
+
+
 
             self.beast_encoder = be_linear
             self.beast_encoder.fit(feature_dic)
@@ -299,13 +328,73 @@ class Model(object):
         print("int_features: "+str(int_features.shape))
         
         if self.enc is None:
+
+            self.vectorizer = TfidfVectorizer(min_df=1)
+            corpus = d.summary.values
+            X = self.vectorizer.fit_transform(corpus)
+            dense_X = X.toarray()
+
+            self.description_vectorizer = TfidfVectorizer(min_df=1)
+            description_corpus = map(str,d.description.values)
+            X_description = self.description_vectorizer.fit_transform(description_corpus)
+            dense_X_description = X_description.toarray()
+
+
+            print 'dense x shape:'
+            print np.shape(dense_X)
+
+            print 'description dense x shape:'
+            print np.shape(dense_X_description)
+
             self.enc = sklearn.preprocessing.OneHotEncoder(
                                             n_values = self.beast_encoder.shape
                                                )
+
             encoded_features = self.enc.fit_transform(int_features).todense()
+            
+
+
             print("Encoded feature shape: "+str(encoded_features.shape))
+            print encoded_features
+            print type(encoded_features)
+
+
+            print 'encoded features shape before:'
+            print np.shape(encoded_features)
+
+
+            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+            encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+
+
+            print 'encoded features shape after:'
+            print np.shape(encoded_features)
+
+
         else:
+            print 'now computing the rest'
+            corpus = d.summary.values
+            dense_X = self.vectorizer.transform(corpus).toarray()
+
             encoded_features = self.enc.transform(int_features).todense()
+
+            description_corpus = map(str,d.description.values)
+
+            dense_X_description = self.description_vectorizer.transform(description_corpus).toarray()
+
+            print 'encoded features shape before:'
+            print np.shape(encoded_features)
+            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+            encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+
+            print 'encoded features shape after:'
+            print np.shape(encoded_features)
+
+            print np.max(encoded_features)
+
+        #at this point we are wanting to add the BOW features
+
+
         return encoded_features
 
     def train(self,n_estimators=65):
@@ -327,43 +416,81 @@ class Model(object):
 
         self.regressors = [0,0,0]#initialize
 
+        manager = Manager()
+        regressor_list = manager.list(range(3))
+
         start = time.time()
 
-        self.fit_comments(tr_features)
-        self.fit_views(tr_features)
-        self.fit_votes(tr_features)
+        #these three functions are independent, should be executed independently
 
-    def fit_votes(self,tr_features):
+        p_com = Process(target=self.fit_comments, args=(tr_features,regressor_list,))
+        p_com.start()
+
+        p_viw = Process(target=self.fit_views, args=(tr_features,regressor_list,))
+        p_viw.start()
+
+        p_vot = Process(target=self.fit_votes, args=(tr_features,regressor_list,))
+        p_vot.start()
+
+#        self.fit_comments(tr_features)
+#        self.fit_views(tr_features)
+#        self.fit_votes(tr_features)
+
+        p_com.join()
+        p_viw.join()
+        p_vot.join()
+
+        self.regressors = regressor_list
+
+#        self.regressors=[p_com.get(),p_viw.get(),p_vot.get()]
+
+#        pool = Pool(processes=3)
+#        pool_comments = pool.apply_async(self.fit_comments, [tr_features])
+#        pool_views = pool.apply_async(self.fit_views, [tr_features])
+#        pool_votes = pool.apply_async(self.fit_votes, [tr_features])#
+
+#        pool.close()
+#        pool.join()
+
+#        self.regressors=[pool_comments.get(),pool_views.get(),pool_votes.get()]
+
+
+
+    def fit_votes(self,tr_features,regressor_list):
         print 'Fitting num_votes'
         start = time.time()
 
-        regressor = ensemble.GradientBoostingRegressor(n_estimators=30,
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=20,
                                                        learning_rate=0.1,
                                                        max_depth=6,
                                                        verbose=0)
 
-#        regressor = ensemble.RandomForestRegressor(n_estimators=30,
+#        regressor = ensemble.RandomForestRegressor(n_estimators=20,
 #                                                   max_depth=6,
 #                                                   verbose=0)
 
-
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,)
+#3
+        regressor = linear_model.SGDRegressor(n_iter=30,
+                                              alpha=0.0001,
+                                              shuffle=True,
+                                              power_t = 0.2,)
 
 
 
         regressor.fit(tr_features, tog(self.tr_d['num_votes'].values))
-
+        
+        
         self.regressors[2] = regressor
+        regressor_list[2] = regressor
         print 'Elapsed time %f' %(time.time() - start)
 
-    def fit_views(self,tr_features):
+        return regressor
+
+    def fit_views(self,tr_features,regressor_list):
         print 'Fitting num_views'
         start = time.time()
 
-        regressor = ensemble.GradientBoostingRegressor(n_estimators=60,
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=20,
                                                        learning_rate=0.1,
                                                        max_depth=6,
                                                        verbose=0)
@@ -373,18 +500,21 @@ class Model(object):
 #                                                   max_depth=6,
 #                                                   verbose=0)
 
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,
-#                                              shuffle = True)
+#1
+        regressor = linear_model.SGDRegressor(n_iter=30,
+                                              alpha=0.0001,
+                                              power_t = 0.2,
+                                              shuffle = True)
 
         regressor.fit(tr_features, tog(self.tr_d['num_views'].values))
 
         self.regressors[1] = regressor
+        regressor_list[1] = regressor
         print 'Elapsed time %f' %(time.time() - start)
 
-    def fit_comments(self,tr_features):
+        return regressor
+
+    def fit_comments(self,tr_features,regressor_list):
         print 'Fitting num_comments'
         start = time.time()
 
@@ -393,20 +523,28 @@ class Model(object):
 #                                                   max_depth=4,
 #                                                   verbose=0)
 
-        regressor = ensemble.RandomForestRegressor(n_estimators=30,
-                                                   max_depth=4,
-                                                   verbose=0)
+#        regressor = ensemble.RandomForestRegressor(n_estimators=20,
+#                                                   max_depth=4,
+#                                                   verbose=0)
+#
+        regressor = ensemble.GradientBoostingRegressor(n_estimators=20,
+                                                       learning_rate=0.1,
+                                                       max_depth=6,
+                                                       verbose=0)
 
-#        regressor = linear_model.SGDRegressor(n_iter=5,
-#                                              penalty = 'elasticnet',
-#                                              alpha = 0.0001,
-#                                              power_t = 0.2,
-#                                              shuffle = True)
-# 
+#2
+        regressor = linear_model.SGDRegressor(n_iter=30,
+                                              alpha=0.0001,
+                                              power_t = 0.2,
+                                              shuffle = True)
+
         regressor.fit(tr_features, tog(self.tr_d['num_comments'].values))
 
         self.regressors[0] = regressor
+        regressor_list[0] = regressor
         print 'Elapsed time %f' %(time.time() - start)
+
+        return regressor
 
     def predict(self, data = None, training_set = True):
         if data is None:
@@ -415,7 +553,7 @@ class Model(object):
             else:
                 data = self.te_d
 
-        features = self.__make_features__(data) 
+        features = self.__make_features__(data)
         print("features: " + str(features.shape))
         prediction_arr = []
         for r in self.regressors:

@@ -29,11 +29,13 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg():
+def test_prediction_alg(using_tfidf = True, short_trees = False, sgd_text_feature = False, sgd = True, gbm_feature = True):
     (tr_d, te_d) = (tr_data(), te_data())
-    print("training...")
-    m = SubmissionGenerator().train(tr_d[:-10000])
-    print("predicting...")
+    m = SubmissionGenerator(using_tfidf = using_tfidf,
+                            short_trees = short_trees, 
+                            sgd_text_feature = sgd_text_feature,
+                            sgd = sgd,
+                            gbm_feature = gbm_feature).train(tr_d[:-10000])
     predictions = m.predict(tr_d[-10000:])
     training_set_error = predictions.training_set_error(tr_d[-10000:])
 
@@ -43,19 +45,16 @@ def test_prediction_alg():
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
-    return (training_set_error,m, predictions, e)
+    return (training_set_error, m, predictions, e)
 
-def make_submission(short_trees = True):
+def make_submission(using_tfidf = True, short_trees = False, sgd_text_feature = False, sgd = True, gbm_feature = True):
     (tr_d, te_d) = (tr_data(), te_data())
-    m = SubmissionGenerator()
-    m.short_trees = short_trees
-    m.train(tr_d)
-    predictions = m.predict(te_d)
-    assert(np.max(predictions.comment_p)<5) 
-    predictions.correct_means()
-    assert(np.max(predictions.comment_p)<5)
-    predictions.vote_p = np.maximum(predictions.vote_p, 1)
-    predictions.write(te_d)
+    m = SubmissionGenerator(using_tfidf = using_tfidf,
+                            short_trees = short_trees, 
+                            sgd_text_feature = sgd_text_feature,
+                            sgd = sgd,
+                            gbm_feature = gbm_feature).train(tr_d)
+    predictions = m.predict(te_d).correct_means().write(te_d)
     return (m, predictions)
 
 def tr_data(after_row = 160000):
@@ -76,24 +75,17 @@ def rms(x):
 def identify_dupes(data_set = None):
     pass
 
-def add_features(d, s_d, t_d, summary_d):
+def add_features(d, s_d, t_d, sgd_model = None):
     weekday = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').weekday()
     hour = lambda timestr : datetime.datetime.strptime(timestr,'%Y-%m-%d %H:%M:%S').hour
     day_sixth = lambda timestr : hour(timestr) // 3
     feature_dic = {
             'weekday': map(weekday,d.created_time.values), # 7
-
             'source' : features.feature_to_int(d.source.values, # 9 
                                                category_dict =\
                                                s_d),
-
             'tag_type' : features.feature_to_int(d.tag_type.values, # 43
                                                  category_dict = t_d),
-
-            'summary' : features.feature_to_int(d.summary.values,  #9 
-                                                category_dict = summary_d),
-
-            'description' : map(int, d.description > 0),
             'city': features.city_feature(d), #clusters #10
             'day_sixth': map(day_sixth,d.created_time.values), # 4
             'naive_nlp': map(features.naive_nlp,d.summary.values),
@@ -104,6 +96,13 @@ def add_features(d, s_d, t_d, summary_d):
             'angry_post':map(features.angry_post,d.summary.values),
             'angry_description':map(features.angry_post,d.description.values),
         }
+    if sgd_model is not None:
+        p = sgd_model.predict(d)
+	feature_dic['sgd_num_comments'] = p.comment_p
+	feature_dic['sgd_num_views'] = p.view_p
+	feature_dic['sgd_num_votes'] = p.vote_p
+       
+            
 
     scalar_feature_dic = {
             'age': map(features.issue_age, d.created_time.values)
@@ -204,7 +203,8 @@ class Model(object):
     ''' Represents a model for one of {comments, views, votes}. Allows training
     and predicting using the model. '''
 
-    def __init__(self):
+    def __init__(self, sgd_text_feature = False):
+        self.sgd_text_feature = sgd_text_feature
         self.enc = None
         self.beast_encoder = None
         self.km = None
@@ -232,13 +232,12 @@ class Model(object):
         
         print("int_features: "+str(int_features.shape))
         
-        using_tfidf = False
         if self.enc is None:
             
-            if using_tfidf:
+            if self.using_tfidf:
 		    self.vectorizer = TfidfVectorizer(min_df=1)
 		    corpus = d.summary.values
-		    X = self.vectorizer.fit_transform(corpus)
+                    X = self.vectorizer.fit_transform(corpus)
 		    dense_X = X.toarray()
 
 		    self.description_vectorizer = TfidfVectorizer(min_df=1)
@@ -255,10 +254,9 @@ class Model(object):
 
 
         else:
-
-            print 'now computing the rest'
+            print('Transforming features using self.enc.')
 	    encoded_features = self.enc.transform(int_features).todense()
-            if using_tfidf:
+            if self.using_tfidf:
                 corpus = d.summary.values
 	        dense_X = self.vectorizer.transform(corpus).toarray()
 	        description_corpus = map(str,d.description.values)
@@ -267,19 +265,30 @@ class Model(object):
 
 
 
-        if using_tfidf:
+        if self.using_tfidf:
             print 'encoded features shape before:'
 	    print np.shape(encoded_features)
 	    encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
 	    encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
             print 'encoded features shape after:'
 	    print np.shape(encoded_features)
-
-        scalar_features = np.array([d['age']]).transpose()
-        features = np.concatenate([encoded_features,
-                                   scalar_features],
+        age_feature = False
+        if age_feature:
+		scalar_features = np.array([d['age']]).transpose()
+		encoded_features = np.concatenate([encoded_features,
+					   scalar_features],
                                   axis = 1)
-        return features #encoded_features # no age
+        if self.sgd_text_feature:
+            scalar_features = np.array([d['sgd_num_comments'], d['sgd_num_views'], d['sgd_num_votes']]).transpose()
+	    encoded_features = np.concatenate([encoded_features,
+				   scalar_features],
+			  axis = 1)
+        if self.gbm_feature:  
+            scalar_features = np.array([d['gbm_comments'], d['gbm_views'], d['gbm_votes']]).transpose()
+	    encoded_features = np.concatenate([encoded_features,
+				   scalar_features],
+			  axis = 1)
+        return encoded_features
 
     def train(self, training_data, training_col):
         """
@@ -313,54 +322,106 @@ class SubmissionGenerator:
     ''' Makes a submission. Contains training and predicting code. Running the
     prediction code returns a Prediction that we can then write to a file. '''
 
-    def __init__(self):
+    def __init__(self, sgd = False, using_tfidf = False, sgd_text_feature = False, short_trees = False, gbm_feature = True):
+        self.sgd = sgd
+        self.using_tfidf = using_tfidf
+        self.sgd_text_feature = sgd_text_feature
+        self.short_trees = short_trees
+        self.gbm_feature = gbm_feature
+
+        self.m = None
         self.comment_model = Model()
         self.view_model = Model()
         self.vote_model = Model()
         self.models = (self.comment_model, self.view_model, self.vote_model)
+        for m in self.models:
+            m.using_tfidf = self.using_tfidf
+        for m in self.models:
+            m.gbm_feature = self.gbm_feature
 
     def train(self, data):
+        print("training...")
         self.s_d = features.make_category_dict(data.source.values)
         self.t_d = features.make_category_dict(data.tag_type.values)
-        self.summary_d = features.make_category_dict(data.summary.values,threshold=10)
-        training_data = add_features(data, self.s_d, self.t_d, self.summary_d)
-        
-        if self.short_trees:
-		self.comment_model.regressor =\
-			ensemble.RandomForestRegressor(n_estimators=30,
-							   max_depth=4,
-							   verbose=0)
-		self.view_model.regressor =\
-			ensemble.GradientBoostingRegressor(n_estimators=20,
-							       learning_rate=0.3,
-							       max_depth=4,
-							       verbose=0)
-		self.vote_model.regressor =\
-			ensemble.GradientBoostingRegressor(n_estimators=20,
-							       learning_rate=0.3,
-							       max_depth=4,
-							       verbose=0)
+        #self.summary_d = features.make_category_dict(data.summary.values,threshold=10)
+        if self.sgd_text_feature:
+            assert(not self.sgd) # for now I want to use this as a feature for the gbm
+            self.sgd_model = SubmissionGenerator(sgd = True, using_tfidf = True)
+	    self.sgd_model.train(data)
+	    training_data = add_features(data, self.s_d, self.t_d, sgd_model = self.sgd_model)
         else:
-		self.comment_model.regressor =\
-			ensemble.RandomForestRegressor(n_estimators=30,
-							   max_depth=4,
-							   verbose=0)
-		self.view_model.regressor =\
-			ensemble.GradientBoostingRegressor(n_estimators=30,
-							       learning_rate=0.1,
-							       max_depth=6,
-							       verbose=0)
-		self.vote_model.regressor =\
-			ensemble.GradientBoostingRegressor(n_estimators=30,
-							       learning_rate=0.1,
-							       max_depth=6,
-							       verbose=0)
+            training_data = add_features(data, self.s_d, self.t_d, sgd_model = None)
+        if self.gbm_feature:
+	    self.m = SubmissionGenerator(sgd=False, using_tfidf=False, sgd_text_feature = False, gbm_feature = False)
+            self.m.train(data)
+            p = self.m.predict(data)
+            data['gbm_comments'] = p.comment_p
+            data['gbm_views'] = p.view_p
+            data['gbm_votes'] = p.vote_p
+        
+        if self.sgd:
+             self.comment_model.regressor =\
+                 linear_model.SGDRegressor(n_iter=30,
+                                                       alpha = 0.0001,
+                                                       power_t = 0.2,
+                                                       shuffle = True)  
+             self.view_model.regressor =\
+                 linear_model.SGDRegressor(n_iter=30,
+                                                       alpha = 0.0001,
+                                                       power_t = 0.2,
+                                                       shuffle = True)  
+             self.vote_model.regressor =\
+                 linear_model.SGDRegressor(n_iter=30,
+                                                       alpha = 0.0001,
+                                                       power_t = 0.2,
+                                                       shuffle = True)  
+        else:
+		if self.short_trees:
+			self.comment_model.regressor =\
+				ensemble.RandomForestRegressor(n_estimators=30,
+								   max_depth=4,
+								   verbose=0)
+			self.view_model.regressor =\
+				ensemble.GradientBoostingRegressor(n_estimators=20,
+								       learning_rate=0.3,
+								       max_depth=4,
+								       verbose=0)
+			self.vote_model.regressor =\
+				ensemble.GradientBoostingRegressor(n_estimators=20,
+								       learning_rate=0.3,
+								       max_depth=4,
+								       verbose=0)
+		else:
+			self.comment_model.regressor =\
+				ensemble.RandomForestRegressor(n_estimators=30,
+								   max_depth=4,
+								   verbose=0)
+			self.view_model.regressor =\
+				ensemble.GradientBoostingRegressor(n_estimators=30,
+								       learning_rate=0.1,
+								       max_depth=6,
+								       verbose=0)
+			self.vote_model.regressor =\
+				ensemble.GradientBoostingRegressor(n_estimators=30,
+								       learning_rate=0.1,
+								       max_depth=6,
+								       verbose=0)
 	for (m, c) in zip(self.models,cols_to_predict):
             m.train(training_data, training_data[c].values)
         return self
 
     def predict(self, data):
-        test_data = add_features(data, self.s_d, self.t_d, self.summary_d)
+        print("predicting...")
+        if self.sgd_text_feature:
+		test_data = add_features(data, self.s_d, self.t_d,\
+                                         sgd_model = self.sgd_model )
+        else:
+		test_data = add_features(data, self.s_d, self.t_d)
+        if self.gbm_feature:
+            p = self.m.predict(data)
+            data['gbm_comments'] = p.comment_p
+            data['gbm_views'] = p.view_p
+            data['gbm_votes'] = p.vote_p
         p = []
         for m in self.models:
             p.append(m.predict(test_data))
@@ -371,7 +432,7 @@ class Predictions(object):
     def __init__(self, comment_p, view_p, vote_p):
         self.comment_p = comment_p
         self.view_p = view_p
-        self.vote_p = vote_p
+        self.vote_p = np.maximum(vote_p, 1)
 
     def training_set_error(self,training_data):
         d = training_data 
@@ -393,8 +454,9 @@ class Predictions(object):
         log_mean_votes = 0.80850881
         self.comment_p = Predictions.__set_tog_mean__(self.comment_p, log_mean_comments) 
         self.view_p = Predictions.__set_tog_mean__(self.view_p, log_mean_views)
-        self.vote_p = Predictions.__set_tog_mean__(self.vote_p, log_mean_votes)
+        self.vote_p = np.maximum(Predictions.__set_tog_mean__(self.vote_p, log_mean_votes),1)
         self.corrected = True
+        return self
 
     @staticmethod
     def __set_tog_mean__(arr, m):
@@ -418,6 +480,7 @@ class Predictions(object):
             for (id, comment, view, vote) in zip(d.id, self.comment_p, self.view_p, self.vote_p):
                 assert(comment < 5)
                 handle.write("{0},{1:.10f},{2:.10f},{3:.10f}\n".format(id, view, vote, comment))
+        return self
     
 def make_vw_training_set(d, features):
     with open("data/vowpal_training.vw","w") as handle:

@@ -473,7 +473,7 @@ class Model(object):
         regressor = linear_model.SGDRegressor(n_iter=30,
                                               alpha=0.0001,
                                               shuffle=True,
-                                              power_t = 0.2,)
+                                              power_t = 0.25,)
 
 
 
@@ -503,7 +503,7 @@ class Model(object):
 #1
         regressor = linear_model.SGDRegressor(n_iter=30,
                                               alpha=0.0001,
-                                              power_t = 0.2,
+                                              power_t = 0.25,
                                               shuffle = True)
 
         regressor.fit(tr_features, tog(self.tr_d['num_views'].values))
@@ -535,7 +535,7 @@ class Model(object):
 #2
         regressor = linear_model.SGDRegressor(n_iter=30,
                                               alpha=0.0001,
-                                              power_t = 0.2,
+                                              power_t = 0.25,
                                               shuffle = True)
 
         regressor.fit(tr_features, tog(self.tr_d['num_comments'].values))

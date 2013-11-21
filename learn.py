@@ -87,7 +87,7 @@ def identify_dupes(d = None):
                 if e[7] == vals[i+j+1][7]:
                     duplicates[i] = duplicates[i + j + 1] = 1
     d['duplicates'] = duplicates
-    return d
+    return duplicates
 
 def make_predictions2(n_estimators=20):
     tr_d = load_data(True)
@@ -274,9 +274,7 @@ class Model(object):
             'dense_neighbourhood':features.dense_neighbourhood(d),
             'angry_post':(map(features.angry_post,d.summary.values)),
             'angry_description':(map(features.angry_post,d.description.values)),
-
-
-
+            'dupes':identify_dupes(d),
         }
 #            'summary_bag_of_words':features.summary_bag_of_words(d)
 
@@ -309,7 +307,7 @@ class Model(object):
 
             be_linear = F('tag_type') + F('source') + F('city') +\
                         F('angry_post') + F('day_sixth') +F('summary_length') + F('description_length') + F('naive_nlp') + F('naive_nlp_description') +\
-F('weekday') +F('angry_description') +F('description') + F('summary') #line found to have poor predictive capacity:
+F('weekday') +F('angry_description') +F('description') + F('summary') +F('dupes')
 
 
 

@@ -73,9 +73,10 @@ def test_prediction_alg(n_estimators=30):
 def identify_dupes(d = None):
     ''' d is the data set.'''
     print("finding duplicates...")
+    d_red = d[['id', 'latitude', 'longitude', 'tag_type']]
     duplicates = np.zeros(len(d))
     scope = 200
-    vals = d.values
+    vals = d_red.values
     for (i, e) in enumerate(vals):
         if i % 10000 == 0:
             print(i)
@@ -84,7 +85,7 @@ def identify_dupes(d = None):
         for (j, x) in enumerate(distSquare):
             if x < 2 * 10**(-3):
                 # require same tag type
-                if e[7] == vals[i+j+1][7]:
+                if e[3] == vals[i+j+1][3]:
                     duplicates[i] = duplicates[i + j + 1] = 1
     d['duplicates'] = duplicates
     return duplicates

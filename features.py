@@ -179,7 +179,7 @@ def neighbourhoods(d):
     km = KMeans(n_clusters = 4, n_jobs = -1, n_init = 20, random_state = 7)
     spatial_data = d[['latitude', 'longitude']]
     clusters = km.fit_predict(spatial_data)
-    print(km.score(spatial_data))
+#    print(km.score(spatial_data))
     return (km, clusters)
 
 def city_feature(d):
@@ -194,6 +194,13 @@ def city_feature(d):
             # Really we should figure this out.
     return cities
 
+def issue_age(timestr):
+    dt = datetime.datetime.strptime(timestr, "%Y-%m-%d %H:%M:%S")
+    time = calendar.timegm(dt.utctimetuple())
+    final = datetime.datetime.strptime("2013-04-30 23:51:37", "%Y-%m-%d %H:%M:%S")
+    finaltime = calendar.timegm(final.utctimetuple())
+    # the choice of final time is rather arbitrary.
+    return finaltime - time
 
 def make_category_dict(feature,threshold=0):
 

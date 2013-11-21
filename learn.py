@@ -312,11 +312,11 @@ class Model(object):
             be_small_niche = (F('tag_type') * F('source') * F('city'))
 
             be_linear = F('tag_type') + F('source') + F('city') +\
-                        F('angry_post') + F('day_sixth') +F('summary_length') + F('description_length') + F('naive_nlp') + F('naive_nlp_description')
+                        F('angry_post') + F('day_sixth') +F('summary_length') + F('description_length') + F('naive_nlp') + F('naive_nlp_description') +\
+F('weekday') +F('angry_description') +F('description') + F('summary') #line found to have poor predictive capacity:
 
 
-#The following have been found to have poor predictive capacity:
-# +F('weekday') +F('angry_description') # +F('description')# + F('summary')
+
 
 
 

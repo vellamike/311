@@ -70,8 +70,24 @@ def test_prediction_alg(n_estimators=30):
 
     return (training_set_error, m, predictions)
 
-def identify_dupes(data_set = None):
-    pass
+def identify_dupes(d = None):
+    ''' d is the data set.'''
+    print("finding duplicates...")
+    duplicates = np.zeros(len(d))
+    scope = 200
+    vals = d.values
+    for (i, e) in enumerate(vals):
+        if i % 10000 == 0:
+            print(i)
+        other_issues = vals[i + 1: i + scope + 1]
+        distSquare = (e[1] - other_issues[:,1])**2 + (e[2] - other_issues[:,2])**2
+        for (j, x) in enumerate(distSquare):
+            if x < 2 * 10**(-3):
+                # require same tag type
+                if e[7] == vals[i+j+1][7]:
+                    duplicates[i] = duplicates[i + j + 1] = 1
+    d['duplicates'] = duplicates
+    return d
 
 def make_predictions2(n_estimators=20):
     tr_d = load_data(True)

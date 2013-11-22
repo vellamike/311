@@ -21,4 +21,23 @@ def scan(num_processes=64):
     plt.plot(scores)
     plt.show()
 
-scan()
+
+def feature_scan(features=None):
+
+    default_features =  [F('tag_type'),
+                         F('source'),
+                         F('city'),
+                         F('angry_post'),
+                         F('day_sixth'),
+                         F('summary_length'),
+                         F('description_length'),
+                         F('naive_nlp'),
+                         F('naive_nlp_description'),
+                         F('weekday'),
+                         F('angry_description'),
+                         F('description'),
+                         F('summary')]
+    
+    naive_linear_encoder = sum(default_features)
+
+    learn.test_prediction_alg(encoder=naive_linear_encoder)

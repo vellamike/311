@@ -55,12 +55,12 @@ import features
 
 cols_to_predict = ['num_comments', 'num_views', 'num_votes']
 
-def test_prediction_alg(n_estimators=60):
+def test_prediction_alg(n_estimators=60,encoder=None):
     tr_d = load_data(True)
     te_d = load_data(False)
-    m = Model(tr_d[:-10000])
+    m = Model(tr_d[:-10000],encoder=encoder)
 
-    m.train(n_estimators=n_estimators)
+    m.train(n_estimators=n_estimators,encoder=encoder)
     predictions = m.predict(data = tr_d[-10000:])
     
     training_set_error = predictions.training_set_error(tr_d[-10000:])
@@ -203,7 +203,7 @@ def chicago_fix(d):
     return d
 
 class Model(object):
-    def __init__(self, training_data = None, test_data = None):
+    def __init__(self, training_data = None, test_data = None,encoder=None):
         if training_data is None:
             self.tr_d = load_data(training_set = True)
         else:
@@ -213,7 +213,7 @@ class Model(object):
         else:
             self.te_d = test_data
         self.enc = None
-        self.beast_encoder = None
+        self.beast_encoder = encoder
         self.km = None
         #self.te_d = chicago_fix(self.te_d)
 
@@ -321,7 +321,8 @@ F('weekday') +F('angry_description') +F('description') + F('summary') #line foun
 
 
             self.beast_encoder = be_linear
-            self.beast_encoder.fit(feature_dic)
+
+        self.beast_encoder.fit(feature_dic)
 
         int_features = self.beast_encoder.transform(feature_dic).transpose()
         
@@ -397,7 +398,7 @@ F('weekday') +F('angry_description') +F('description') + F('summary') #line foun
 
         return encoded_features
 
-    def train(self,n_estimators=65):
+    def train(self,n_estimators=65,encoder=None):
         """
         Train the model from the training set.
 

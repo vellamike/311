@@ -73,7 +73,7 @@ def test_prediction_alg(n_estimators=60,encoder=None):
     e['vote_p'] = predictions.vote_p
     e['view_p'] = predictions.view_p
     e['comment_p'] = predictions.comment_p
-    return (training_set_error,m, predictions, e)
+    return (training_set_error,m, predictions,e)
 
 def identify_dupes(data_set = None):
     pass
@@ -364,8 +364,8 @@ F('weekday') +F('angry_description') +F('description') + F('summary') #line foun
             print np.shape(encoded_features)
 
 
-            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
-            encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+#            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+ #           encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
 
 
             print 'encoded features shape after:'
@@ -385,8 +385,9 @@ F('weekday') +F('angry_description') +F('description') + F('summary') #line foun
 
             print 'encoded features shape before:'
             print np.shape(encoded_features)
-            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
-            encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
+
+#            encoded_features = np.concatenate((encoded_features,dense_X),axis=1)
+#            encoded_features = np.concatenate((encoded_features,dense_X_description),axis=1)
 
             print 'encoded features shape after:'
             print np.shape(encoded_features)
@@ -579,11 +580,15 @@ class Predictions(object):
         e2 = tog(d.num_views.values) - tog(self.view_p)
         e3 = tog(d.num_votes.values) - tog(self.vote_p)
 
+        comments_error = rms(e1)
+        views_error = rms(e2)
+        votes_error = rms(e3)
+
         print 'num_comments rms error: %f' % rms(e1)
         print 'num_views rms error: %f' % rms(e2)
         print 'num_votes rms error: %f' % rms(e3)
 
-        error = rms(np.concatenate([e1,e2,e3]))
+        error = [rms(np.concatenate([e1,e2,e3])),comments_error,views_error,votes_error]
 
         return error
 

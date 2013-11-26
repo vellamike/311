@@ -84,26 +84,26 @@ def write_submission(ids,final_num_views,prepared_votes,prepared_comments,outfil
     df.to_csv(outfile, index=False, header=True, sep=',')
 
 
-#example:
-prediction = pandas.read_csv('/home/mike/dev/311/data/predictions.csv')
-
-ids = prediction.id.values
-predicted_num_views = prediction.num_views.values
-predicted_num_votes = prediction.num_votes.values
-predicted_num_comments = prediction.num_comments.values
-
-prediction = (predicted_num_views,
-              predicted_num_votes,
-              predicted_num_comments)
-
-tog_means = [(0,32000,0.420261689267326),
-             (32001,74999,0.426933736209156),
-             (75000,110001,0.390166529477941),
-             (110002,149575,0.410843725350216)
-             ]
-
-scaled_prediction = predictions_corrector(prediction,tog_means)
-write_submission(ids,
-                 scaled_prediction[0],
-                 scaled_prediction[1],
-                 scaled_prediction[2])
+##example:
+#prediction = pandas.read_csv('/home/mike/dev/311/data/predictions.csv')
+#
+#ids = prediction.id.values
+#predicted_num_views = prediction.num_views.values
+#predicted_num_votes = prediction.num_votes.values
+#predicted_num_comments = prediction.num_comments.values
+#
+#prediction = (predicted_num_views,
+#              predicted_num_votes,
+#              predicted_num_comments)
+#
+#tog_means = [(0,32000,0.420261689267326),
+#             (32001,74999,0.426933736209156),
+#             (75000,110001,0.390166529477941),
+#             (110002,149575,0.410843725350216)
+#             ]
+#
+#scaled_prediction = predictions_corrector(prediction,tog_means)
+#write_submission(ids,
+#                 scaled_prediction[0],
+#                 scaled_prediction[1],
+#                 scaled_prediction[2])

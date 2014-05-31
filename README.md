@@ -1,3 +1,9 @@
+This is the repository Mike Vella and Ben Derrett used for coding the solution that acheived [position #13](https://www.kaggle.com/c/see-click-predict-fix/leaderboard) in the Kaggle competition [See Click Fix Predict](https://www.kaggle.com/c/see-click-predict-fix/).
+
+#WARNING
+
+Most of the code here has highly-experimental prototype status, I would not advise anyone to use this codebase for educational purposes.
+
 # Things to try
 In order of subjective importance (i.e. expected score improvement / implementation time.)
 

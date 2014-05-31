@@ -2,7 +2,7 @@ This is the repository Mike Vella and Ben Derrett used for coding the solution t
 
 #WARNING
 
-Most of the code here has highly-experimental prototype status, I would not advise anyone to use this codebase for educational purposes.
+Most of the code here has highly-experimental prototype status, It was written as a one-off for the competition and to help BD and MV learn about sklearn and Pandas. I would not advise anyone to use this codebase for educational purposes.
 
 # Things to try
 In order of subjective importance (i.e. expected score improvement / implementation time.)
